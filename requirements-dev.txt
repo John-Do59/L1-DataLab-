@@ -1,0 +1,12 @@
+pytest
+pytest-asyncio
+black
+isort
+mypy
+ruff
+ipykernel
+jupyter
+scrapy
+playwright
+beautifulsoup4
+lxml
