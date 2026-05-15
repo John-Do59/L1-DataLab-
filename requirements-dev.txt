@@ -10,3 +10,4 @@ scrapy
 playwright
 beautifulsoup4
 lxml
+kagglehub

@@ -181,3 +181,6 @@ monitoring/alertmanager/data/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Project Data
+data/
