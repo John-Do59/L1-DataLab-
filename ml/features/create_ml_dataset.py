@@ -166,7 +166,7 @@ def run_feature_engineering(conn):
         for _, match in matches_df.iterrows():
             home_id = match["home_team_id"]
             away_id = match["away_team_id"]
-            ref_date = match["kickoff"] if pd.notna(match["kickoff"]) else pd.Timestamp.max
+            ref_date = match["kickoff"] if pd.notna(match["kickoff"]) else pd.Timestamp.max.tz_localize("UTC")
 
             # Rolling stats
             home_stats = compute_team_rolling_stats(matches_df, home_id, ref_date)

@@ -11,3 +11,6 @@ playwright
 beautifulsoup4
 lxml
 kagglehub
+scikit-learn
+matplotlib
+seaborn

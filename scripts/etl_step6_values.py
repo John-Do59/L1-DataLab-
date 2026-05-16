@@ -87,8 +87,9 @@ def run_etl(conn):
     with conn.cursor() as cur:
         for _, row in df_l1.iterrows():
             tm_id = int(row["player_id"])
-            last_name = str(row.get("last_name", "")).strip()
-            dob = str(row.get("date_of_birth", "")).strip()
+            last_name = str(row.get("last_name", "")).strip() if pd.notna(row.get("last_name")) else ""
+            dob_val = row.get("date_of_birth")
+            dob = str(dob_val).strip() if pd.notna(dob_val) and str(dob_val).strip() != "nan" else None
 
             player_db_id = resolve_player_id(cur, tm_id, last_name, dob)
             if not player_db_id:

@@ -159,7 +159,7 @@ def run_etl(conn):
                 club.get("stadium"),
             ))
             row = cur.fetchone()
-            team_db_id = row[0]
+            team_db_id = row["id"]
             print(f"  🟢 Team: {api_name} → {canonical} (id={team_db_id})")
 
             # Mapping source API
@@ -178,7 +178,7 @@ def run_etl(conn):
             result = cur.fetchone()
             if not result:
                 continue
-            team_id = result[0]
+            team_id = result["id"]
 
             for source in ("kaggle_historical", "betting_fduk"):
                 cur.execute("""

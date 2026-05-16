@@ -8,45 +8,52 @@ class MatchesSpider(scrapy.Spider):
     name = "l1_matches"
     allowed_domains = ["ma-api.ligue1.fr"]
 
+    def __init__(self, season="2024", *args, **kwargs):
+        super(MatchesSpider, self).__init__(*args, **kwargs)
+        self.season = season  # '2024' = 24/25 season
+
     def start_requests(self):
-        # On peut ajuster daysLimit pour récupérer plus de matchs
-        url = "https://ma-api.ligue1.fr/championships-daily-calendars/matches"
-        params = {
-            "timezone": "Europe/Paris",
-            "daysLimit": "7",  # Récupérer sur une semaine
-            "lookAfter": "true",
-        }
-        
-        # Construction de l'URL avec les params
-        full_url = f"{url}?timezone={params['timezone']}&daysLimit={params['daysLimit']}&lookAfter={params['lookAfter']}"
-        
-        yield scrapy.Request(
-            url=full_url,
-            method="GET",
-            headers=DEFAULT_HEADERS,
-            callback=self.parse_matches,
-        )
+        # La Ligue 1 compte 18 équipes, donc 34 journées
+        for gw in range(1, 35):
+            url = f"https://ma-api.ligue1.fr/championship-matches/championship/1/game-week/{gw}?season={self.season}"
+            
+            yield scrapy.Request(
+                url=url,
+                method="GET",
+                headers=DEFAULT_HEADERS,
+                callback=self.parse_matches,
+                meta={'season': self.season, 'gameweek': gw}
+            )
 
     def parse_matches(self, response):
         data = json.loads(response.text)
-        results = data.get("results", {})
-        matches_dict = results.get("matches", {})
+        matches = data.get("matches", [])
 
-        for match_id, match in matches_dict.items():
+        for match in matches:
             item = MatchItem()
             item["match_id"] = match.get("matchId")
-            item["home_team_id"] = match.get("homeTeamId")
-            item["away_team_id"] = match.get("awayTeamId")
+            
+            # Gestion des données imbriquées 'home' et 'away'
+            home_data = match.get("home", {})
+            away_data = match.get("away", {})
+            
+            # Les IDs des équipes sont parfois 'clubId' ou imbriqués dans 'clubIdentity'
+            item["home_team_id"] = home_data.get("clubId")
+            item["away_team_id"] = away_data.get("clubId")
+            
             item["kickoff"] = match.get("date")
             item["stadium"] = match.get("stadiumId")
             item["competition_id"] = match.get("championshipId")
-            item["season"] = match.get("season")
-            item["gameweek"] = match.get("gameWeekNumber")
+            
+            # Saison : On reformate '2024' en '2024/25' pour la consistance en DB
+            year = int(response.meta['season'])
+            item["season"] = f"{year}/{str(year+1)[-2:]}"
+            
+            item["gameweek"] = match.get("gameWeekNumber") or response.meta['gameweek']
             item["status"] = match.get("period")
             
-            # Scores (si disponibles)
-            score = match.get("score") or {}
-            item["home_score"] = score.get("home")
-            item["away_score"] = score.get("away")
+            # Scores (None si le match n'est pas encore joué)
+            item["home_score"] = home_data.get("score")
+            item["away_score"] = away_data.get("score")
             
             yield item
