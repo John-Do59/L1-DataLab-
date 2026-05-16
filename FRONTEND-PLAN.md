@@ -1,7 +1,9 @@
 # L1 DataLab Studio — Frontend Premium SaaS Vision
 
 ## Vision Produit
+
 Le frontend de **L1 DataLab Studio** doit refléter une plateforme IA moderne, premium et immersive, inspirée des meilleurs produits AI actuels :
+
 * Leonardo.ai
 * Vercel
 * Linear
@@ -11,6 +13,7 @@ Le frontend de **L1 DataLab Studio** doit refléter une plateforme IA moderne, p
 * Anthropic Console
 
 L’objectif n’est pas seulement de construire un dashboard football, mais une expérience SaaS haut de gamme orientée :
+
 * IA
 * agentic systems
 * data visualization
@@ -22,9 +25,11 @@ L’objectif n’est pas seulement de construire un dashboard football, mais une
 # Positionnement Produit
 
 ## Concept
+>
 > “Agentic Analytics as a Service”
 
 L1 DataLab devient :
+
 * une plateforme intelligente,
 * capable d’analyser,
 * prédire,
@@ -32,6 +37,7 @@ L1 DataLab devient :
 * et assister l’utilisateur dans la compréhension du championnat.
 
 Le frontend doit transmettre :
+
 * sophistication,
 * fluidité,
 * précision,
@@ -43,6 +49,7 @@ Le frontend doit transmettre :
 # Stack Frontend
 
 ## Core
+
 * Vue.js 3
 * Vite
 * TypeScript
@@ -51,18 +58,21 @@ Le frontend doit transmettre :
 * Axios
 
 ## UI / Animation
+
 * TailwindCSS
 * GSAP
 * ScrollTrigger
-* Framer Motion (optionnel)
-* Lenis smooth scroll (optionnel)
+* Framer Motion
+* Lenis smooth scroll
 
 ---
 
 # Direction Artistique
 
 ## Palette — “Sunset Mystique”
+
 ### Couleurs principales
+
 * Deep Navy (`#20115b`)
 * Midnight Purple (`#010108` background absolu)
 * Sunset Orange / Pink (`#f6b3e5` Rose cendré)
@@ -70,7 +80,9 @@ Le frontend doit transmettre :
 * Electric Violet (`#7232f2`)
 
 ### Ambiance & Style : Apple iOS 26 Liquidglass
+
 L'interface adoptera un look futuriste ultra-premium inspiré d'une hypothétique version "Apple iOS 26 Liquidglass" :
+
 * **Glassmorphism poussé à l'extrême** : Flous d'arrière-plan profonds (backdrop-filter: blur), bordures translucides 1px, et réflexions lumineuses subtiles.
 * **Liquid Transitions** : Les éléments ne disparaissent pas, ils se transforment de manière organique (morphing de formes).
 * **Typographie** : minimaliste, aérée, sans-serif géométrique très fine avec un tracking précis.
@@ -121,7 +133,9 @@ frontend/
 # UX Goals
 
 ## Objectifs UX
+
 Le frontend doit donner l’impression :
+
 * d’un produit IA premium,
 * rapide,
 * intelligent,
@@ -130,6 +144,7 @@ Le frontend doit donner l’impression :
 * fluide.
 
 Le focus UX doit être :
+
 * motion design subtil,
 * transitions douces,
 * animations GPU-friendly,
@@ -141,6 +156,7 @@ Le focus UX doit être :
 # Landing Page Premium
 
 ## Hero Section
+
 * énorme headline typographique
 * gradient animé Liquidglass
 * CTA premium avec effet magnétique
@@ -152,7 +168,9 @@ Le focus UX doit être :
 # Scroll Gallery Premium (Leonardo.ai Inspired)
 
 ## Vision
+
 Créer une expérience immersive type :
+
 * Leonardo.ai
 * Apple product storytelling
 * modern AI SaaS showcase
@@ -162,6 +180,7 @@ Créer une expérience immersive type :
 # Scroll Animation Requirements
 
 ## Comportement
+
 * section sticky en plein écran
 * pile d’images / dashboards
 * défilement lié au scroll
@@ -176,6 +195,7 @@ Créer une expérience immersive type :
 # Architecture Animation
 
 ## Structure
+
 * section très haute (300vh+)
 * container sticky en 100vh
 * images préchargées
@@ -186,9 +206,11 @@ Créer une expérience immersive type :
 # Technologies recommandées
 
 ## Animation Engine
+
 **GSAP + ScrollTrigger**
 
 Pourquoi :
+
 * pinning précis
 * scrub fluide
 * performance mobile
@@ -200,6 +222,7 @@ Pourquoi :
 # Effets visuels
 
 ## Effets autorisés
+
 * opacity fade
 * scale interpolation
 * blur léger (Liquidglass)
@@ -209,6 +232,7 @@ Pourquoi :
 * parallax faible
 
 ## Effets interdits
+
 * animations agressives
 * zoom excessif
 * transitions brutales
@@ -220,12 +244,15 @@ Pourquoi :
 # Pages à Développer
 
 ## Phase 1 — Foundation
+
 ### Landing
+
 * Hero premium
 * Scroll gallery
 * CTA onboarding
 
 ### Auth
+
 * Login
 * Register
 * JWT integration
@@ -233,13 +260,16 @@ Pourquoi :
 ---
 
 ## Phase 2 — Dashboard
+
 ### Dashboard utilisateur
+
 * prochains matchs
 * prédictions IA
 * probabilités
 * classement
 
 ### Match Details
+
 * statistiques
 * historique
 * prédiction détaillée
@@ -247,12 +277,15 @@ Pourquoi :
 ---
 
 ## Phase 3 — AI Experience
+
 ### Insights IA
+
 * explications du modèle
 * génération de résumés
 * assistant IA local
 
 ### Agentic UX
+
 * suggestions automatiques
 * insights contextualisés
 * recommandations intelligentes
@@ -262,9 +295,11 @@ Pourquoi :
 # API Integration
 
 ## Backend connecté
+
 Frontend → App API
 
 L’App API centralise :
+
 * auth JWT
 * récupération des matchs
 * historique utilisateur
@@ -276,6 +311,7 @@ L’App API centralise :
 # Sécurité
 
 ## Auth Flow
+
 * JWT access token
 * protected routes
 * axios interceptors
@@ -286,6 +322,7 @@ L’App API centralise :
 # Performance
 
 ## Priorités
+
 * lazy loading
 * route splitting
 * image optimization
@@ -295,7 +332,9 @@ L’App API centralise :
 ---
 
 # Mobile Experience
+
 Le design doit être :
+
 * responsive
 * tactile
 * fluide
@@ -304,11 +343,31 @@ Le design doit être :
 
 ---
 
+# Environnement Docker & Déploiement
+
+## Architecture Actuelle (Production)
+
+Le Frontend est packagé via un `Dockerfile` multi-stage optimisé pour la production :
+1. **Build Stage** : Compile l'application Vue.js/Vite en fichiers statiques.
+2. **Serve Stage** : Utilise Nginx pour servir les assets de manière ultra-performante sur le port 80.
+
+Dans le `docker-compose.yml`, le service `frontend` ne monte **pas** de volume local. Cela garantit une immutabilité parfaite en production (chaque modification de code nécessite un `docker compose build frontend`).
+
+## Développement Local (Hot Reload)
+
+Pour bénéficier du Hot Module Replacement (HMR) pendant le design de l'UI :
+* **Option 1 (Recommandée)** : Lancer Vite nativement sur votre Mac via `npm run dev` dans le dossier `services/frontend/`.
+* **Option 2** : Écrire un `docker-compose.override.yml` pour y monter le volume local (`./services/frontend:/app`) et utiliser l'image de node en mode dev.
+
+---
+
 # Objectif Final
+
 Transformer L1 DataLab en :
 > une plateforme SaaS IA premium de predictive analytics footballistique.
 
 Le frontend doit donner l’impression :
+
 * d’un vrai produit startup,
 * d’un SaaS moderne,
 * d’une plateforme AI-native,
