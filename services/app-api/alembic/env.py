@@ -17,7 +17,7 @@ config = context.config
 # On surcharge l'URL de la DB avec celle de l'environnement
 db_url = os.getenv("DATABASE_URL")
 if db_url and db_url.startswith("postgresql+asyncpg://"):
-    # Alembic a besoin du driver synchrone pour migrer
+    # Alembic a besoin du driver synchrone pour migrer.
     db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
 config.set_main_option("sqlalchemy.url", db_url)
 

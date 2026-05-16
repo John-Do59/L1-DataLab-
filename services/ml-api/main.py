@@ -7,9 +7,30 @@ import os
 
 app = FastAPI(title="Ligue 1 ML API", version="1.0.0")
 
-# Chemins vers le modèle figé
-MODEL_PATH = Path(__file__).resolve().parents[2] / "ml" / "models" / "l1_model_v1.json"
-CLASSES_PATH = Path(__file__).resolve().parents[2] / "ml" / "models" / "classes.txt"
+# Chemins vers le modèle figé (Flexible pour Local vs Docker)
+def get_model_path(filename: str):
+    # Chemin Docker (racine /app)
+    docker_path = Path("/app/ml/models") / filename
+    if docker_path.exists():
+        return docker_path
+    
+    # Chemin Local (relatif à main.py)
+    local_path = Path(__file__).resolve().parent / "ml" / "models" / filename
+    if local_path.exists():
+        return local_path
+        
+    # Fallback racine projet (parents[2] si main.py est dans services/ml-api)
+    try:
+        fallback_path = Path(__file__).resolve().parents[2] / "ml" / "models" / filename
+        if fallback_path.exists():
+            return fallback_path
+    except IndexError:
+        pass
+        
+    return Path("ml/models") / filename
+
+MODEL_PATH = get_model_path("l1_model_v1.json")
+CLASSES_PATH = get_model_path("classes.txt")
 
 # Chargement du modèle au démarrage
 model = xgb.XGBClassifier()

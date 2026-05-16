@@ -11,9 +11,12 @@ RUN apt-get update && apt-get install -y \
 COPY requirements-api.txt .
 RUN pip install --no-cache-dir -r requirements-api.txt
 
-# Copie sélective
-COPY services/app-api/ services/app-api/
+# Copie le CONTENU de services/app-api à la racine /app
+COPY services/app-api/ .
 
 EXPOSE 8000
 
-CMD ["./services/app-api/start.sh"]
+# On s'assure que le script est exécutable
+RUN chmod +x start.sh
+
+CMD ["./start.sh"]
