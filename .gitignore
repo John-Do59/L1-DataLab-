@@ -6,6 +6,13 @@ __pycache__/
 venv/
 .env
 
+# Frontend (Vue.js / Node)
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
+
 # Data & Models (Large or Sensitive)
 data/raw/
 data/processed/
