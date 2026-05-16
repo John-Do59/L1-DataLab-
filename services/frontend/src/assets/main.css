@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/* 
+ * =========================================================
+ * SUNSET MYSTIQUE - DESIGN SYSTEM & LIQUIDGLASS
+ * =========================================================
+ */
+
+@theme {
+  /* Notre palette "Sunset Mystique" personnalisée */
+  --color-sunset-bg: #010108;
+  --color-sunset-surface: #20115b;
+  --color-sunset-primary: #7232f2;
+  --color-sunset-secondary: #c876ff;
+  --color-sunset-accent: #f6b3e5;
+
+  /* Polices élégantes */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Base Styles */
+@layer base {
+  body {
+    @apply bg-sunset-bg text-sunset-accent font-sans antialiased min-h-screen selection:bg-sunset-primary selection:text-white;
+    /* Empêche le rebond du scroll sur Mac pour un effet application native */
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Liquidglass & Premium UI Utilities */
+@layer utilities {
+  .liquid-glass {
+    @apply bg-sunset-surface/30 backdrop-blur-xl border border-sunset-secondary/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)];
+  }
+
+  .liquid-glass-strong {
+    @apply bg-sunset-surface/50 backdrop-blur-2xl border border-sunset-accent/30 shadow-[0_8px_32px_rgba(32,17,91,0.3)];
+  }
+
+  .liquid-glow {
+    box-shadow: 0 0 40px -10px var(--color-sunset-primary);
+  }
+
+  .liquid-glow-hover {
+    @apply transition-all duration-500 ease-out hover:shadow-[0_0_50px_-15px_var(--color-sunset-secondary)];
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-sunset-secondary to-sunset-accent;
+  }
+}

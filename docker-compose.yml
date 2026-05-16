@@ -55,6 +55,20 @@ services:
     ports:
       - "8002:8000"
 
+  # --- FRONTEND ---
+  frontend:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    container_name: l1-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - app-api
+    environment:
+      - VITE_API_URL=http://localhost:8002
+
+
 volumes:
   postgres_ml_data:
   postgres_app_data:
