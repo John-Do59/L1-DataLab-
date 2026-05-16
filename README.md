@@ -39,12 +39,15 @@ docker compose up -d
 Les services seront disponibles sur :
 - **App API** : [http://localhost:8002](http://localhost:8002)
 - **ML API** : [http://localhost:8001](http://localhost:8001)
+- **Frontend** : [http://localhost:5173](http://localhost:5173)
 
 Pour plus de détails, consultez [DOCKER.md](./DOCKER.md) et [ML_PIPELINE.md](./ML_PIPELINE.md).
 
 ## 📂 Structure du Projet
 - `db/` : Schémas SQL et scripts d'initialisation PostgreSQL.
-- `services/scraper/` : Spiders Scrapy pour extraire les données de Ligue1.com.
+- `app-api/` : API principale FastAPI (Authentification JWT, Utilisateurs, Historique)
+- `frontend/` : Interface Vue.js 3 "Sunset Mystique" (GSAP, Tailwind v4, Liquidglass)
+- `scraper/` : Extraction Scrapy pour extraire les données de Ligue1.com.
 - `scripts/` : Pipeline d'ETL et outils de maintenance.
 - `ml/` : 
     - `features/` : Scripts de calcul d'Elo et de feature engineering.
