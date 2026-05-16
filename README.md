@@ -16,7 +16,17 @@ Plateforme industrielle de collecte et de prédiction des résultats de la Ligue
 - **Scraping** : Scrapy (Ligue 1 API).
 - **Base de données** : PostgreSQL (Architecture Micro-DBs).
 - **ML** : XGBoost Optimisé + Elo Rating System.
-- **Infrastucture** : Docker Compose (Microservices).
+- **Infrastructure** : Docker Compose (Microservices).
+- **Backend** : FastAPI + SQLAlchemy 2.0 Async + Pydantic v2.
+
+## 📚 Documentation Technique
+
+Pour approfondir le fonctionnement du système, consultez nos guides détaillés :
+- 🗄️ [SQLAlchemy 2.0 Async](docs/SQLALCHEMY.md) : Gestion de la base de données asynchrone.
+- ✅ [Pydantic V2](docs/PYDANTIC.md) : Validation et typage des données.
+- ⚙️ [Alembic](docs/ALEMBIC.md) : Gestion des migrations et du schéma.
+- 🧪 [Guide de Test](docs/TESTS.md) : Commandes pour valider le système distribué.
+- 🐳 [Docker Guide](DOCKER.md) : Orchestration et optimisation des images.
 
 ## 🚀 Installation & Lancement (Production)
 

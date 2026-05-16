@@ -1,53 +1,146 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from jose import jwt, JWTError
+from datetime import timedelta
+
 from .core.database import get_db
-from .schemas.schemas import UserCreate, UserResponse
+from .core.security import verify_password, create_access_token, SECRET_KEY, ALGORITHM
+from .schemas.schemas import UserCreate, UserResponse, Token, TokenData, PredictionResponse
 from .repositories.user_repository import UserRepository
+from .repositories.team_repository import TeamRepository
+from .repositories.prediction_repository import PredictionRepository
 from .services.ml_client import ml_client
+from .services.feature_service import FeatureService
 
 app = FastAPI(title="Ligue 1 Professional API", version="2.0.0")
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+
+async def get_current_user(
+    db: AsyncSession = Depends(get_db), 
+    token: str = Depends(oauth2_scheme)
+):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    
+    repo = UserRepository(db)
+    user = await repo.get_by_username(token_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
 
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Professional Ligue 1 API"}
+
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
+
+# --- AUTH ENDPOINTS ---
+
+@app.post("/auth/login", response_model=Token)
+async def login(
+    db: AsyncSession = Depends(get_db), 
+    form_data: OAuth2PasswordRequestForm = Depends()
+):
+    repo = UserRepository(db)
+    user = await repo.get_by_username(form_data.username)
+    
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token = create_access_token(subject=user.username)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+# --- USER ENDPOINTS ---
 
 @app.post("/users", response_model=UserResponse)
 async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     repo = UserRepository(db)
     
     # Vérification si l'email existe
-    existing = await repo.get_by_email(user_in.email)
-    if existing:
+    existing_email = await repo.get_by_email(user_in.email)
+    if existing_email:
         raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Vérification si le username existe
+    existing_user = await repo.get_by_username(user_in.username)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already taken")
     
     new_user = await repo.create(user_in)
     return new_user
 
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
+@app.get("/users/me", response_model=UserResponse)
+async def read_users_me(current_user = Depends(get_current_user)):
+    return current_user
 
-@app.post("/predict/test")
-async def test_prediction(home_team: str, away_team: str):
-    # Simulation de features (en prod, elles viendraient de la DB via les stats des équipes)
-    dummy_features = {
-        "home_elo": 1500.0,
-        "away_elo": 1450.0,
-        "elo_diff": 50.0,
-        "home_form_5": 0.6,
-        "away_form_5": 0.4,
-        "home_avg_overall": 75.0,
-        "away_avg_overall": 72.0,
-        "home_squad_value": 200.0,
-        "away_squad_value": 150.0,
-        "odds_prob_home": 0.45,
-        "odds_prob_draw": 0.25,
-        "odds_prob_away": 0.30
-    }
+# --- PREDICTION ENDPOINTS (PROTECTED) ---
+
+@app.post("/predict", response_model=PredictionResponse)
+async def predict_match(
+    home_team_name: str, 
+    away_team_name: str, 
+    current_user = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Vrai endpoint de prédiction dynamique :
+    - Récupère les stats réelles en Base de Données.
+    - Calcule les features dynamiques.
+    - Interroge le modèle ML.
+    - Sauvegarde l'historique.
+    """
+    team_repo = TeamRepository(db)
     
-    prediction = await ml_client.get_prediction(dummy_features)
+    # 1. Récupération des vraies données
+    home_team = await team_repo.get_by_name(home_team_name)
+    away_team = await team_repo.get_by_name(away_team_name)
+    
+    if not home_team or not away_team:
+        raise HTTPException(status_code=404, detail="Une ou les deux équipes sont introuvables en base de données.")
+        
+    # 2. Feature Engineering Dynamique
+    features = FeatureService.prepare_features(home_team, away_team)
+    
+    # 3. Interrogation du microservice ML
+    ml_response = await ml_client.get_prediction(features)
+    predicted_result = ml_response["prediction"]
+    probs = ml_response["probabilities"]
+    
+    # 4. Sauvegarde dans l'historique
+    pred_repo = PredictionRepository(db)
+    # Note: Dans une vraie prod, on aurait un MatchID réel. Ici on stocke 0 par défaut pour les tests live.
+    saved_pred = await pred_repo.save_prediction(
+        user_id=current_user.id,
+        match_id=0, # À lier à la table Match pour une journée de championnat
+        result=predicted_result,
+        prob_h=probs.get("H", 0.0),
+        prob_d=probs.get("D", 0.0),
+        prob_a=probs.get("A", 0.0)
+    )
     
     return {
-        "match": f"{home_team} vs {away_team}",
-        "prediction_result": prediction
+        "id": saved_pred.id,
+        "match_id": f"{home_team.name} vs {away_team.name}",
+        "predicted_result": predicted_result,
+        "probabilities": probs,
+        "created_at": saved_pred.created_at
     }
