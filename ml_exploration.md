@@ -36,7 +36,21 @@ L'approche choisie est **incrémentale**, indispensable pour construire un socle
 ### 2. Random Forest (La Baseline Non-Linéaire)
 - **But** : Gérer les interactions de features complexes sans overfitter facilement.
 - **Approche** : Utilisation de `class_weight="balanced"` pour forcer le modèle à prêter attention aux matchs Nuls (D) et aux victoires à l'Extérieur (A).
+- **Résultat** : ~41.5% d'accuracy sur la saison live.
 - **Analyse** : Étude de la *Feature Importance* (ex: vérifier si les cotes des bookmakers dominent la capacité prédictive des formes des équipes).
 
-### 3. XGBoost (L'Optimisation)
-- Modèle final utilisé pour repousser les limites de la prédiction tabulaire, à venir une fois la validation du Random Forest effectuée.
+### 3. XGBoost (L'Optimisation Finale)
+- **But** : Capturer des relations non-linéaires fines et maximiser la précision globale.
+- **Approche** : Hyperparameter tuning et gestion du gradient boosting.
+- **Résultat** : **45.42% d'accuracy** sur la saison 2024/25.
+- **Observation** : Le modèle XGBoost surpasse significativement les baselines linéaires et le Random Forest, montrant une réelle capacité à prédire les victoires à l'extérieur (Recall ~18% sur A vs ~50% sur H).
+
+## 🏁 Conclusion Comparative
+| Modèle | Accuracy (Test 2024/25) | F1-Score | Statut |
+| :--- | :---: | :---: | :--- |
+| Régression Logistique | ~39% | ~31% | Baseline |
+| Random Forest | ~41.5% | ~39% | Validé |
+| **XGBoost** | **45.42%** | **40.3%** | **Production-Ready** |
+
+> [!IMPORTANT]
+> Le succès de ce pipeline repose sur la **qualité de l'ETL**. La correction du bug de mapping des IDs d'équipes a permis d'injecter les **cotes bookmakers**, propulsant ainsi la capacité prédictive du modèle.

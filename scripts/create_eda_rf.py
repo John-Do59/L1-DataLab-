@@ -189,7 +189,7 @@ X = df[features]
 y = df['result']
 
 # Split Temporel — Pas de random split !
-test_season = '2018/19'
+test_season = '2024/25'
 train_mask = df['season'] != test_season
 test_mask = df['season'] == test_season
 

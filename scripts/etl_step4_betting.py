@@ -60,71 +60,78 @@ def resolve_match_id(cur, home_name: str, away_name: str, season: str = "2024/25
 
 
 def run_etl(conn):
-    if not BETTING_CSV.exists():
-        print(f"❌ Fichier introuvable : {BETTING_CSV}")
-        return
+    betting_files = [
+        ("2024/25", PROJECT_ROOT / "data" / "betting" / "ligue1_2425_odds.csv"),
+        ("2025/26", PROJECT_ROOT / "data" / "betting" / "ligue1_2526_odds.csv")
+    ]
 
-    df = pd.read_csv(BETTING_CSV, encoding="utf-8-sig")
-    df.columns = [c.strip() for c in df.columns]
-    print(f"✅ {len(df)} lignes chargées depuis Football-Data.co.uk")
-
-    inserted = 0
-    skipped = 0
+    total_inserted = 0
+    total_skipped = 0
 
     with conn.cursor() as cur:
-        for _, row in df.iterrows():
-            home = str(row.get("HomeTeam", "")).strip()
-            away = str(row.get("AwayTeam", "")).strip()
-
-            match_id = resolve_match_id(cur, home, away)
-            if not match_id:
-                skipped += 1
+        for season_label, filepath in betting_files:
+            if not filepath.exists():
+                print(f"⚠️  Fichier ignoré (introuvable) : {filepath.name}")
                 continue
 
-            for bookmaker, (col_h, col_d, col_a) in BOOKMAKERS.items():
-                oh = row.get(col_h)
-                od = row.get(col_d)
-                oa = row.get(col_a)
+            print(f"📂 Traitement des cotes : {filepath.name} (Saison {season_label})")
+            df = pd.read_csv(filepath, encoding="utf-8-sig")
+            df.columns = [c.strip() for c in df.columns]
 
-                # Ignorer si toutes les cotes sont NaN
-                if pd.isna(oh) and pd.isna(od) and pd.isna(oa):
+            for _, row in df.iterrows():
+                home = str(row.get("HomeTeam", "")).strip()
+                away = str(row.get("AwayTeam", "")).strip()
+
+                if not home or not away:
                     continue
 
-                oh = float(oh) if not pd.isna(oh) else None
-                od = float(od) if not pd.isna(od) else None
-                oa = float(oa) if not pd.isna(oa) else None
+                match_id = resolve_match_id(cur, home, away, season=season_label)
+                if not match_id:
+                    total_skipped += 1
+                    continue
 
-                # Over/Under (B365 uniquement)
-                over25 = float(row.get("B365>2.5")) if bookmaker == "B365" and not pd.isna(row.get("B365>2.5")) else None
-                under25 = float(row.get("B365<2.5")) if bookmaker == "B365" and not pd.isna(row.get("B365<2.5")) else None
+                for bookmaker, (col_h, col_d, col_a) in BOOKMAKERS.items():
+                    oh = row.get(col_h)
+                    od = row.get(col_d)
+                    oa = row.get(col_a)
 
-                cur.execute("""
-                    INSERT INTO betting_odds (
+                    if pd.isna(oh) and pd.isna(od) and pd.isna(oa):
+                        continue
+
+                    oh = float(oh) if not pd.isna(oh) else None
+                    od = float(od) if not pd.isna(od) else None
+                    oa = float(oa) if not pd.isna(oa) else None
+
+                    over25 = float(row.get("B365>2.5")) if bookmaker == "B365" and not pd.isna(row.get("B365>2.5")) else None
+                    under25 = float(row.get("B365<2.5")) if bookmaker == "B365" and not pd.isna(row.get("B365<2.5")) else None
+
+                    cur.execute("""
+                        INSERT INTO betting_odds (
+                            match_id, bookmaker,
+                            odd_home, odd_draw, odd_away,
+                            prob_home, prob_draw, prob_away,
+                            odd_over25, odd_under25
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (match_id, bookmaker) DO UPDATE SET
+                            odd_home  = EXCLUDED.odd_home,
+                            odd_draw  = EXCLUDED.odd_draw,
+                            odd_away  = EXCLUDED.odd_away,
+                            prob_home = EXCLUDED.prob_home,
+                            prob_draw = EXCLUDED.prob_draw,
+                            prob_away = EXCLUDED.prob_away
+                    """, (
                         match_id, bookmaker,
-                        odd_home, odd_draw, odd_away,
-                        prob_home, prob_draw, prob_away,
-                        odd_over25, odd_under25
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (match_id, bookmaker) DO UPDATE SET
-                        odd_home  = EXCLUDED.odd_home,
-                        odd_draw  = EXCLUDED.odd_draw,
-                        odd_away  = EXCLUDED.odd_away,
-                        prob_home = EXCLUDED.prob_home,
-                        prob_draw = EXCLUDED.prob_draw,
-                        prob_away = EXCLUDED.prob_away
-                """, (
-                    match_id, bookmaker,
-                    oh, od, oa,
-                    implied_prob(oh), implied_prob(od), implied_prob(oa),
-                    over25, under25,
-                ))
-                inserted += 1
+                        oh, od, oa,
+                        implied_prob(oh), implied_prob(od), implied_prob(oa),
+                        over25, under25,
+                    ))
+                    total_inserted += 1
 
     conn.commit()
-    print(f"\n✅ {inserted} entrées de cotes insérées")
-    print(f"⚠️  {skipped} matchs ignorés (non trouvés en DB)")
-    print("✨ ETL Step 4 terminé : cotes bookmakers chargées.")
+    print(f"\n✅ {total_inserted} entrées de cotes insérées au total")
+    print(f"⚠️  {total_skipped} matchs ignorés")
+    print("✨ ETL Step 4 terminé.")
 
 
 def main():

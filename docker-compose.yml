@@ -1,22 +1,60 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: l1datalab-postgres
+  # --- DATABASES ---
+  db-ml:
+    image: postgres:15
+    container_name: l1-db-ml
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-l1user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-l1password}
-      POSTGRES_DB: ${POSTGRES_DB:-l1_datalab}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      POSTGRES_DB: l1_ml
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-l1user}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - "5433:5432" # Port décalé pour éviter les conflits locaux
+    volumes:
+      - postgres_ml_data:/var/lib/postgresql/data
+      - ./db/init_ml.sql:/docker-entrypoint-initdb.d/init.sql
+
+  db-app:
+    image: postgres:15
+    container_name: l1-db-app
+    environment:
+      POSTGRES_DB: l1_app
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_app_data:/var/lib/postgresql/data
+      - ./db/init_app.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # --- APIS ---
+  ml-api:
+    build: 
+      context: .
+      dockerfile: services/ml-api/Dockerfile
+    container_name: l1-ml-api
+    depends_on:
+      - db-ml
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-ml:5432/l1_ml
+    ports:
+      - "8001:8000"
+
+  app-api:
+    build: 
+      context: .
+      dockerfile: services/app-api/Dockerfile
+    container_name: l1-app-api
+    depends_on:
+      - db-app
+      - ml-api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-app:5432/l1_app
+      ML_API_URL: http://ml-api:8000
+    ports:
+      - "8002:8000"
 
 volumes:
-  postgres_data:
+  postgres_ml_data:
+  postgres_app_data:

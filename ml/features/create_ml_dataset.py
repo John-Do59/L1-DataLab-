@@ -134,23 +134,23 @@ def get_betting_features(cur, match_id: int) -> dict:
 
 def run_feature_engineering(conn):
     with conn.cursor() as cur:
-        # Chargement de tous les matchs terminés avec dates
+        # Chargement de TOUS les matchs (terminés et à venir)
         cur.execute("""
             SELECT m.id, m.season, m.kickoff, m.gameweek,
                    m.home_team_id, m.away_team_id,
                    m.home_score, m.away_score, m.result,
+                   m.status,
                    ht.internal_name AS home_team_name,
                    at_.internal_name AS away_team_name
             FROM matches m
             JOIN teams ht  ON ht.id  = m.home_team_id
             JOIN teams at_ ON at_.id = m.away_team_id
-            WHERE m.result IS NOT NULL
             ORDER BY m.kickoff ASC NULLS FIRST
         """)
         matches_raw = cur.fetchall()
 
     if not matches_raw:
-        print("❌ Aucun match terminé trouvé en base.")
+        print("❌ Aucun match trouvé en base.")
         return
 
     matches_df = pd.DataFrame(matches_raw)
@@ -159,16 +159,33 @@ def run_feature_engineering(conn):
     else:
         matches_df["kickoff"] = pd.to_datetime(matches_df["kickoff"], utc=True, errors="coerce")
 
-    print(f"✅ {len(matches_df)} matchs chargés pour le feature engineering")
+    print(f"✅ {len(matches_df)} matchs chargés (historique + futur)")
+
+    # Chargement des scores Elo pré-calculés
+    elos_path = PROJECT_ROOT / "ml" / "features" / "match_elos.csv"
+    latest_elos_path = PROJECT_ROOT / "ml" / "features" / "latest_elos.json"
+    
+    import json
+    if elos_path.exists():
+        elos_df = pd.read_csv(elos_path)
+    else:
+        elos_df = pd.DataFrame(columns=["match_id", "home_elo", "away_elo"])
+
+    latest_elos = {}
+    if latest_elos_path.exists():
+        with open(latest_elos_path, 'r') as f:
+            latest_elos = json.load(f)
 
     rows = []
     with conn.cursor() as cur:
         for _, match in matches_df.iterrows():
             home_id = match["home_team_id"]
             away_id = match["away_team_id"]
-            ref_date = match["kickoff"] if pd.notna(match["kickoff"]) else pd.Timestamp.max.tz_localize("UTC")
+            
+            # Pour les matchs futurs, on prend "maintenant" comme date de référence pour les stats rolling
+            ref_date = match["kickoff"] if pd.notna(match["kickoff"]) else pd.Timestamp.now(tz="UTC")
 
-            # Rolling stats
+            # Rolling stats (basées sur les matchs terminés AVANT ce match)
             home_stats = compute_team_rolling_stats(matches_df, home_id, ref_date)
             away_stats = compute_team_rolling_stats(matches_df, away_id, ref_date)
 
@@ -179,12 +196,27 @@ def run_feature_engineering(conn):
             # Betting odds
             betting = get_betting_features(cur, match["id"])
 
+            # Elo Ratings
+            match_elo = elos_df[elos_df["match_id"] == match["id"]]
+            if not match_elo.empty:
+                h_elo = match_elo.iloc[0]["home_elo"]
+                a_elo = match_elo.iloc[0]["away_elo"]
+            else:
+                # Fallback sur les derniers Elos connus (pour le futur)
+                h_elo = latest_elos.get(str(home_id), 1500.0)
+                a_elo = latest_elos.get(str(away_id), 1500.0)
+
             row = {
                 "match_id":         match["id"],
                 "season":           match["season"],
                 "gameweek":         match.get("gameweek"),
+                "status":           match["status"],
                 "home_team":        match["home_team_name"],
                 "away_team":        match["away_team_name"],
+                # Elo features
+                "home_elo":         h_elo,
+                "away_elo":         a_elo,
+                "elo_diff":         h_elo - a_elo,
                 # Home features
                 "home_form_5":      home_stats["rolling_form_5"],
                 "home_goals_scored_5":   home_stats["goals_scored_5"],
@@ -208,24 +240,23 @@ def run_feature_engineering(conn):
             }
             rows.append(row)
 
-    df_ml = pd.DataFrame(rows)
+    df_all = pd.DataFrame(rows)
 
-    # Export complet
-    full_path = OUTPUT_DIR / "ml_dataset.csv"
-    df_ml.to_csv(full_path, index=False)
-    print(f"\n✅ Dataset complet exporté : {full_path} ({len(df_ml)} lignes)")
+    # 1. Dataset d'entraînement (matchs terminés)
+    df_train = df_all[df_all["result"].notna()].copy()
+    train_path = OUTPUT_DIR / "ml_dataset.csv"
+    df_train.to_csv(train_path, index=False)
+    print(f"\n✅ Dataset d'entraînement exporté : {train_path} ({len(df_train)} lignes)")
 
-    # Export saison actuelle (avec cotes)
-    df_recent = df_ml[df_ml["odds_prob_home"].notna()].copy()
-    recent_path = OUTPUT_DIR / "ml_dataset_with_odds.csv"
-    df_recent.to_csv(recent_path, index=False)
-    print(f"✅ Dataset avec cotes exporté : {recent_path} ({len(df_recent)} lignes)")
+    # 2. Dataset d'inférence (matchs à venir)
+    df_upcoming = df_all[df_all["result"].isna()].copy()
+    upcoming_path = OUTPUT_DIR / "ml_upcoming.csv"
+    df_upcoming.to_csv(upcoming_path, index=False)
+    print(f"✅ Dataset d'inférence exporté : {upcoming_path} ({len(df_upcoming)} lignes)")
 
-    # Affichage info distributions
-    print(f"\n📊 Distribution des résultats :")
-    print(df_ml["result"].value_counts(normalize=True).round(3))
-    print(f"\n📊 Features sans valeurs manquantes :")
-    print((~df_ml.isna()).sum().to_string())
+    # Affichage info distributions (sur le train)
+    print(f"\n📊 Distribution des résultats (Train) :")
+    print(df_train["result"].value_counts(normalize=True).round(3))
 
 
 def main():
