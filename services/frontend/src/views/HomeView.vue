@@ -54,6 +54,10 @@ const teams = [
   { name: "Toulouse FC", src: toulousefcLogo, size: 'md', class: 'left-[78.8%] top-[26.2%]', delay: 2.0, duration: 5.3 },
   { name: "RC Strasbourg Alsace", src: rcstrasbourgalsaceLogo, size: 'lg', class: 'left-[90.4%] top-[38.1%]', delay: 2.3, duration: 9.0 }
 ]
+
+// Multiplication des logos pour créer un effet de tunnel continu (72 logos)
+const allTeams = [...teams, ...teams, ...teams, ...teams]
+
 const mainContainer = ref<HTMLElement | null>(null)
 let ctx: gsap.Context
 
@@ -61,38 +65,67 @@ onMounted(() => {
   ctx = gsap.context(() => {
     
     // SCÈNE 1 : HERO & CONSTELLATION
+    // État initial : les logos sont invisibles, au centre, mais éparpillés très très loin en profondeur (Starfield effect)
+    gsap.set('.constellation-logo-wrapper', { 
+      opacity: 0, 
+      scale: 0.1,
+      x: () => (Math.random() - 0.5) * window.innerWidth * 1.5,
+      y: () => (Math.random() - 0.5) * window.innerHeight * 1.5,
+      z: () => -1000 - Math.random() * 2000,
+      rotationZ: () => (Math.random() - 0.5) * 180
+    })
+
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: '.hero-section',
         start: 'top top',
-        end: '+=200%',
+        end: '+=400%', // Durée rallongée pour l'effet tunnel
         pin: true,
         scrub: 1,
       }
     })
 
-    // Le texte s'efface en premier avec un effet de recul
-    tl.to('.hero-content', { opacity: 0, scale: 0.8, duration: 1 })
-      // La constellation s'éparpille dans l'espace 3D
-      .to('.constellation-logo', {
-        x: () => (Math.random() - 0.5) * 1000,
-        y: () => (Math.random() - 0.5) * 1000,
-        z: () => Math.random() * 500,
-        scale: () => 0.2 + Math.random(),
-        opacity: 0,
-        duration: 3,
-        stagger: 0.05,
-        ease: 'power2.inOut'
+    // Le titre recule et s'efface
+    tl.to('.hero-content', { opacity: 0, scale: 0.5, z: -1000, duration: 1 })
+      
+      // Les logos foncent vers la caméra (l'inverse du titre)
+      .to('.constellation-logo-wrapper', {
+        opacity: () => 0.6 + Math.random() * 0.4,
+        scale: () => 1.5 + Math.random() * 2,
+        z: () => 500 + Math.random() * 1000, // Ils dépassent la caméra
+        duration: 4, // Longue traversée
+        stagger: {
+          each: 0.05,
+          from: "random" // Flux ininterrompu
+        },
+        ease: 'none'
       }, "<")
-      // Le Dashboard de démo surgit des profondeurs
+      
+      // Ils disparaissent juste avant ou au moment de toucher l'écran (disparition individuelle)
+      .to('.constellation-logo-wrapper', {
+        opacity: 0,
+        duration: 0.5,
+        stagger: {
+          each: 0.05,
+          from: "random"
+        }
+      }, "-=3")
+      
+      // Le Dashboard émerge du vide à la fin
       .to('.dashboard-preview', {
         y: 0,
         opacity: 1,
         rotateX: 0,
         scale: 1,
-        duration: 3,
+        duration: 2,
         ease: 'power3.out'
-      }, "-=2")
+      }, "-=1.5")
+      
+      // SÉCURITÉ : on fait disparaître tout le conteneur des logos pour être sûr qu'aucun ne reste collé
+      .to('.constellation-container', {
+        opacity: 0,
+        duration: 1
+      }, "<")
 
 
     // SCÈNE 2 : PANELS HORIZONTAUX (Scroll Gallery)
@@ -155,18 +188,21 @@ const goDashboard = () => {
         </p>
       </div>
 
-      <!-- Logos Flottants (prêts à recevoir les images du scraper) -->
-      <div class="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
-        <FloatingLogo 
-          v-for="team in teams" 
-          :key="team.name"
-          :name="team.name" 
-          :imgSrc="team.src" 
-          :size="team.size as any" 
-          :class="['constellation-logo', team.class]" 
-          :delay="team.delay" 
-          :duration="team.duration" 
-        />
+      <!-- Logos Flottants : Tunnel Spatial -->
+      <div class="constellation-container absolute inset-0 pointer-events-none z-10 flex items-center justify-center perspective-[2000px] transform-style-3d">
+        <div 
+          v-for="(team, index) in allTeams" 
+          :key="index"
+          class="constellation-logo-wrapper absolute"
+        >
+          <FloatingLogo 
+            :name="team.name" 
+            :imgSrc="team.src" 
+            :size="team.size as any" 
+            :delay="Math.random() * 5" 
+            :duration="5 + Math.random() * 5" 
+          />
+        </div>
       </div>
 
       <!-- Dashboard Mockup caché initialement (Apparaît au scroll) -->

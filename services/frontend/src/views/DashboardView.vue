@@ -5,6 +5,7 @@ import HeroPredictionCard from '../components/dashboard/HeroPredictionCard.vue'
 import MatchCard from '../components/dashboard/MatchCard.vue'
 import InsightPanel from '../components/dashboard/InsightPanel.vue'
 import { useAuthStore } from '../stores/auth'
+import bgStadium1 from '../assets/backgrounds/bg_stadium_1.jpg'
 
 const authStore = useAuthStore()
 
@@ -50,7 +51,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-10 pb-12 w-full max-w-6xl mx-auto pt-8">
+  <!-- Background Image with Overlay -->
+  <div class="fixed inset-0 z-[-1] pointer-events-none bg-[#010108]">
+    <img :src="bgStadium1" alt="Stadium Background" class="w-full h-full object-cover opacity-80" />
+    <div class="absolute inset-0 bg-gradient-to-t from-[#010108]/80 via-transparent to-transparent"></div>
+  </div>
+
+  <div class="space-y-10 pb-12 w-full max-w-6xl mx-auto pt-8 relative z-10">
     
     <!-- Topbar AI Status -->
     <div class="flex justify-between items-end border-b border-sunset-primary/20 pb-6 relative">

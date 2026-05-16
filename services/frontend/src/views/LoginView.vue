@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import bgStadium2 from '../assets/backgrounds/bg_stadium_2.jpg'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -26,7 +27,13 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-[80vh] flex items-center justify-center relative">
+  <!-- Background Image with Overlay -->
+  <div class="fixed inset-0 z-[-1] pointer-events-none bg-[#010108]">
+    <img :src="bgStadium2" alt="Stadium Background" class="w-full h-full object-cover opacity-80" />
+    <div class="absolute inset-0 bg-gradient-to-t from-[#010108]/80 via-transparent to-transparent"></div>
+  </div>
+
+  <div class="min-h-[80vh] flex items-center justify-center relative z-10">
     
     <!-- Background Decorators -->
     <div class="absolute w-[300px] h-[300px] bg-sunset-primary/30 rounded-full blur-[100px] top-[10%] left-[20%] pointer-events-none"></div>

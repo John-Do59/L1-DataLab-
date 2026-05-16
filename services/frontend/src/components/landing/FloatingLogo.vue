@@ -26,12 +26,18 @@ const sizeClasses = computed(() => {
 
 <template>
   <div 
-    class="absolute rounded-3xl flex items-center justify-center liquid-glass p-4 border border-sunset-primary/30 shadow-[0_0_30px_-5px_rgba(200,118,255,0.2)] transition-all duration-700 hover:scale-110 hover:shadow-[0_0_50px_-5px_rgba(246,179,229,0.5)] hover:border-sunset-accent cursor-default backdrop-blur-xl bg-[#010108]/40"
+    class="absolute flex items-center justify-center transition-all duration-700 hover:scale-110 cursor-default"
     :class="sizeClasses"
     :style="animationStyle"
   >
-    <img v-if="imgSrc" :src="imgSrc" :alt="name" class="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transition-transform duration-500 hover:scale-110" />
-    <span v-else class="font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-sunset-accent opacity-90 tracking-tighter">{{ initials }}</span>
+    <!-- Le double drop-shadow crée un contour de 1px précis + un glow diffus -->
+    <img 
+      v-if="imgSrc" 
+      :src="imgSrc" 
+      :alt="name" 
+      class="w-full h-full object-contain drop-shadow-[0_0_1px_rgba(255,255,255,0.6)] drop-shadow-[0_0_15px_rgba(200,118,255,0.3)] transition-all duration-500 hover:scale-110 hover:drop-shadow-[0_0_2px_rgba(255,255,255,0.9)] hover:drop-shadow-[0_0_25px_rgba(246,179,229,0.7)]" 
+    />
+    <span v-else class="font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-sunset-accent opacity-90 tracking-tighter drop-shadow-[0_0_10px_rgba(200,118,255,0.5)]">{{ initials }}</span>
   </div>
 </template>
 
