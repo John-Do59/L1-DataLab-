@@ -3,12 +3,15 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
 from datetime import timedelta
+from typing import List
+
 
 from .core.database import get_db
 from .core.security import verify_password, create_access_token, SECRET_KEY, ALGORITHM
-from .schemas.schemas import UserCreate, UserResponse, Token, TokenData, PredictionResponse
+from .schemas.schemas import UserCreate, UserResponse, Token, TokenData, PredictionResponse, MatchResponse, PredictionHistoryResponse
 from .repositories.user_repository import UserRepository
 from .repositories.team_repository import TeamRepository
+from .repositories.match_repository import MatchRepository
 from .repositories.prediction_repository import PredictionRepository
 from .services.ml_client import ml_client
 from .services.feature_service import FeatureService
@@ -144,3 +147,19 @@ async def predict_match(
         "probabilities": probs,
         "created_at": saved_pred.created_at
     }
+
+@app.get("/matches", response_model=List[MatchResponse])
+async def get_matches(db: AsyncSession = Depends(get_db)):
+    repo = MatchRepository(db)
+    matches = await repo.get_all()
+    return matches
+
+@app.get("/predictions", response_model=List[PredictionHistoryResponse])
+async def get_predictions(
+    current_user = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    repo = PredictionRepository(db)
+    predictions = await repo.get_user_predictions(current_user.id)
+    return predictions
+

@@ -25,9 +25,9 @@ import { RouterView } from 'vue-router'
         </div>
 
         <div class="flex items-center">
-          <button class="liquid-glass hover:bg-sunset-primary/20 px-4 py-2 rounded-xl text-sunset-accent transition-all duration-300 text-sm font-medium border border-sunset-secondary/30">
-            Sign In
-          </button>
+          <RouterLink to="/login" class="liquid-glass hover:bg-sunset-primary/20 px-4 py-2 rounded-xl text-sunset-accent transition-all duration-300 text-sm font-medium border border-sunset-secondary/30">
+            Sign In / Dashboard
+          </RouterLink>
         </div>
       </nav>
     </header>

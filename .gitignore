@@ -16,7 +16,9 @@ dist-ssr/
 # Data & Models (Large or Sensitive)
 data/raw/
 data/processed/
+data/transfermarkt/
 ml/models/*.json
+
 ml/models/*.joblib
 ml/features/*.csv
 ml/features/*.json

@@ -40,3 +40,35 @@ class PredictionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# --- MATCH & TEAM SCHEMAS ---
+class TeamResponse(BaseModel):
+    id: int
+    name: str
+    elo_rating: float
+
+    class Config:
+        from_attributes = True
+
+class MatchResponse(BaseModel):
+    id: int
+    home_team: TeamResponse
+    away_team: TeamResponse
+    match_date: datetime
+    status: str
+
+    class Config:
+        from_attributes = True
+
+class PredictionHistoryResponse(BaseModel):
+    id: int
+    match: MatchResponse
+    predicted_result: str
+    prob_h: float
+    prob_d: float
+    prob_a: float
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
