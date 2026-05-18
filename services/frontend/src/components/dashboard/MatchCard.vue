@@ -4,6 +4,8 @@ import ProbabilityBar from './ProbabilityBar.vue'
 defineProps<{
   homeTeam: string
   awayTeam: string
+  homeLogo?: string
+  awayLogo?: string
   date: string
   status: string
   homeScore?: number | null
@@ -23,18 +25,24 @@ defineProps<{
       <span class="text-[10px] px-2 py-1 rounded-md bg-sunset-primary/10 text-sunset-primary border border-sunset-primary/20 uppercase tracking-wide">{{ status }}</span>
     </div>
     
-    <div class="flex justify-between items-center gap-4 relative z-10">
-      <div class="flex flex-col items-start gap-1">
-        <span class="text-white font-medium text-lg">{{ homeTeam }}</span>
+    <div class="flex justify-between items-center gap-2 relative z-10">
+      <div class="flex flex-col items-center gap-2 w-1/3">
+        <img v-if="homeLogo" :src="homeLogo" class="w-10 h-10 object-contain drop-shadow-md" />
+        <span class="text-white font-medium text-xs text-center leading-tight">{{ homeTeam }}</span>
       </div>
-      <div v-if="homeScore !== undefined && awayScore !== undefined && homeScore !== null && awayScore !== null" class="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-lg border border-white/10">
-        <span class="text-xl font-bold text-white">{{ homeScore }}</span>
-        <span class="text-sunset-accent/50">-</span>
-        <span class="text-xl font-bold text-white">{{ awayScore }}</span>
+      
+      <div class="w-1/3 flex justify-center">
+        <div v-if="homeScore !== undefined && awayScore !== undefined && homeScore !== null && awayScore !== null" class="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-lg border border-white/10">
+          <span class="text-lg font-bold text-white">{{ homeScore }}</span>
+          <span class="text-sunset-accent/50">-</span>
+          <span class="text-lg font-bold text-white">{{ awayScore }}</span>
+        </div>
+        <span v-else class="text-sunset-secondary/40 font-black text-sm italic">vs</span>
       </div>
-      <span v-else class="text-sunset-secondary/40 font-black text-sm italic">vs</span>
-      <div class="flex flex-col items-end gap-1">
-        <span class="text-white font-medium text-lg">{{ awayTeam }}</span>
+      
+      <div class="flex flex-col items-center gap-2 w-1/3">
+        <img v-if="awayLogo" :src="awayLogo" class="w-10 h-10 object-contain drop-shadow-md" />
+        <span class="text-white font-medium text-xs text-center leading-tight">{{ awayTeam }}</span>
       </div>
     </div>
     

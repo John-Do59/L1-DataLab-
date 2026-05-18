@@ -15,8 +15,8 @@ interface MatchData {
   id: number | string
   match_date: string
   status: string
-  home_team: { name: string }
-  away_team: { name: string }
+  home_team: { name: string, logo?: string }
+  away_team: { name: string, logo?: string }
   home_score?: number | null
   away_score?: number | null
 }
@@ -101,6 +101,8 @@ onMounted(async () => {
             <MatchCard 
               :homeTeam="match.home_team.name"
               :awayTeam="match.away_team.name"
+              :homeLogo="match.home_team.logo"
+              :awayLogo="match.away_team.logo"
               :date="new Date(match.match_date).toLocaleDateString()"
               :status="match.status"
               :homeScore="match.home_score"
