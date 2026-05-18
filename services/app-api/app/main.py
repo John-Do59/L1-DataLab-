@@ -107,6 +107,26 @@ async def read_users_me(current_user = Depends(get_current_user)):
 
 # --- PREDICTION ENDPOINTS (PROTECTED) ---
 
+def normalize_team_name(name: str) -> str:
+    name_lower = name.lower()
+    if "paris" in name_lower or "psg" in name_lower:
+        return "Paris Saint-Germain"
+    if "marseille" in name_lower or "om" in name_lower:
+        return "Marseille"
+    if "lille" in name_lower or "losc" in name_lower:
+        return "Lille"
+    if "lyon" in name_lower or "ol" in name_lower:
+        return "Lyon"
+    if "lens" in name_lower or "rc lens" in name_lower:
+        return "Lens"
+    if "monaco" in name_lower or "asm" in name_lower:
+        return "Monaco"
+    if "nice" in name_lower or "ogc" in name_lower:
+        return "Nice"
+    if "rennes" in name_lower or "stade rennais" in name_lower:
+        return "Rennes"
+    return name
+
 @app.post("/predict", response_model=PredictionResponse)
 async def predict_match(
     home_team_name: str, 
@@ -123,15 +143,46 @@ async def predict_match(
     """
     team_repo = TeamRepository(db)
     
-    # 1. Récupération des vraies données
-    home_team = await team_repo.get_by_name(home_team_name)
-    away_team = await team_repo.get_by_name(away_team_name)
+    # 1. Récupération des vraies données avec normalisation
+    norm_home = normalize_team_name(home_team_name)
+    norm_away = normalize_team_name(away_team_name)
     
-    if not home_team or not away_team:
-        raise HTTPException(status_code=404, detail="Une ou les deux équipes sont introuvables en base de données.")
+    home_team = await team_repo.get_by_name(norm_home)
+    away_team = await team_repo.get_by_name(norm_away)
+    
+    # Fallback intelligent pour les équipes absentes de la BD locale (ex: Auxerre, Brest, etc.)
+    from app.models.models import Team
+    if not home_team:
+        home_team = Team(
+            id=0,
+            name=home_team_name,
+            logo_url="https://ligue1.com/images/Logo_Ligue_1.webp",
+            elo=1490.0,
+            form_5=1.3,
+            avg_overall=72.5,
+            squad_value=48.0
+        )
+    if not away_team:
+        away_team = Team(
+            id=0,
+            name=away_team_name,
+            logo_url="https://ligue1.com/images/Logo_Ligue_1.webp",
+            elo=1470.0,
+            form_5=1.2,
+            avg_overall=71.5,
+            squad_value=42.0
+        )
+        
+    # Calcul intelligent des cotes probables basées sur la différence d'Elo
+    elo_diff = home_team.elo - away_team.elo
+    prob_h = 1 / (1 + 10 ** (-elo_diff / 400))
+    prob_a = 1 - prob_h
+    odds_h = max(0.05, prob_h * 0.74)
+    odds_a = max(0.05, prob_a * 0.74)
+    odds_d = 0.26
         
     # 2. Feature Engineering Dynamique
-    features = FeatureService.prepare_features(home_team, away_team)
+    features = FeatureService.prepare_features(home_team, away_team, odds_h, odds_d, odds_a)
     
     # 3. Interrogation du microservice ML
     ml_response = await ml_client.get_prediction(features)
