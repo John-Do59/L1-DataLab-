@@ -21,7 +21,7 @@ import { RouterView } from 'vue-router'
         
         <div class="flex gap-6 text-sm font-medium text-sunset-secondary/80">
           <RouterLink to="/" class="hover:text-sunset-accent transition-colors">Home</RouterLink>
-          <RouterLink to="/about" class="hover:text-sunset-accent transition-colors">Predictions</RouterLink>
+          <RouterLink to="/prediction" class="hover:text-sunset-accent transition-colors">Predictions</RouterLink>
         </div>
 
         <div class="flex items-center">
