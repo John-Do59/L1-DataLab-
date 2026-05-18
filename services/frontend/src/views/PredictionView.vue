@@ -69,12 +69,17 @@
              <div v-else class="relative z-10 w-full h-full border-2 border-dashed border-cyan-500/50 rounded-full flex items-center justify-center text-cyan-500 font-bold">Logo</div>
           </div>
           
-          <select v-model="homeTeam" class="w-full bg-transparent border-none text-center text-[22px] leading-tight font-black text-white uppercase tracking-wider mb-2 outline-none appearance-none cursor-pointer">
-            <option value="" class="bg-black">SELECT HOME TEAM</option>
-            <option v-for="team in availableHomeTeams" :key="team.club_name" :value="team.club_name" class="bg-[#050510] text-sm">
-              {{ team.club_name }}
-            </option>
-          </select>
+          <div class="relative w-full mb-2 group">
+            <select v-model="homeTeam" class="w-full bg-transparent border-none text-center text-[22px] leading-tight font-black text-white uppercase tracking-wider outline-none appearance-none cursor-pointer hover:text-cyan-300 transition-colors">
+              <option value="" class="bg-black" disabled>DOMICILE</option>
+              <option v-for="team in availableHomeTeams" :key="team.club_name" :value="team.club_name" class="bg-[#050510] text-sm">
+                {{ team.club_name }}
+              </option>
+            </select>
+            <div class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none opacity-30 group-hover:opacity-100 transition-opacity">
+              <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          </div>>
           
           <div class="px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-md text-cyan-400 text-[10px] font-bold tracking-widest mb-6 flex items-center gap-1">
             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
@@ -147,12 +152,17 @@
              <div v-else class="relative z-10 w-full h-full border-2 border-dashed border-purple-500/50 rounded-full flex items-center justify-center text-purple-500 font-bold">Logo</div>
           </div>
           
-          <select v-model="awayTeam" class="w-full bg-transparent border-none text-center text-[22px] leading-tight font-black text-white uppercase tracking-wider mb-2 outline-none appearance-none cursor-pointer">
-            <option value="" class="bg-black">SELECT AWAY TEAM</option>
-            <option v-for="team in availableAwayTeams" :key="team.club_name" :value="team.club_name" class="bg-[#050510] text-sm">
-              {{ team.club_name }}
-            </option>
-          </select>
+          <div class="relative w-full mb-2 group">
+            <select v-model="awayTeam" class="w-full bg-transparent border-none text-center text-[22px] leading-tight font-black text-white uppercase tracking-wider outline-none appearance-none cursor-pointer hover:text-purple-300 transition-colors">
+              <option value="" class="bg-black" disabled>EXTÉRIEUR</option>
+              <option v-for="team in availableAwayTeams" :key="team.club_name" :value="team.club_name" class="bg-[#050510] text-sm">
+                {{ team.club_name }}
+              </option>
+            </select>
+            <div class="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none opacity-30 group-hover:opacity-100 transition-opacity">
+              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          </div>>
           
           <div class="px-3 py-1 bg-purple-500/10 border border-purple-500/30 rounded-md text-purple-400 text-[10px] font-bold tracking-widest mb-6 flex items-center gap-1">
             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
@@ -236,8 +246,8 @@ import NeuralCore from '../components/prediction/NeuralCore.vue'
 
 const route = useRoute()
 const teams = ref<any[]>([])
-const homeTeam = ref(route.query.home as string || 'Paris Saint-Germain')
-const awayTeam = ref(route.query.away as string || 'Olympique de Marseille')
+const homeTeam = ref(route.query.home as string || '')
+const awayTeam = ref(route.query.away as string || '')
 
 const predictionState = ref<'idle' | 'loading' | 'reveal'>('idle')
 const result = ref<any>({})
