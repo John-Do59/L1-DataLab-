@@ -26,9 +26,9 @@ import toulousefcLogo from '../assets/logos/toulousefc.png'
 import rcstrasbourgalsaceLogo from '../assets/logos/rcstrasbourgalsace.png'
 
 // Assets - Screenshots
-import dashboardImg from '../assets/screenshots/dashboard.png'
-import heroPredictionImg from '../assets/screenshots/hero_prediction.png'
-import insightPanelImg from '../assets/screenshots/insight_panel.png'
+import dashboardImg from '../assets/screenshots/sport-science-insights-banner.jpg'
+import heroPredictionImg from '../assets/screenshots/ballon-ml.jpg'
+import insightPanelImg from '../assets/screenshots/ballon-ia2.jpg'
 
 gsap.registerPlugin(ScrollTrigger)
 

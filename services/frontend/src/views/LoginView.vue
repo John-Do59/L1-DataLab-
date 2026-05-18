@@ -18,7 +18,7 @@ const handleLogin = async () => {
   try {
     await authStore.login(username.value, password.value)
     router.push('/dashboard')
-  } catch (err) {
+  } catch {
     errorMsg.value = "Identifiants invalides."
   } finally {
     loading.value = false

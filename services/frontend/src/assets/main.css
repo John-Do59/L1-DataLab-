@@ -2,39 +2,135 @@
 
 /* 
  * =========================================================
- * SUNSET MYSTIQUE - DESIGN SYSTEM & LIQUIDGLASS
+ * L1 DATA LAB - SUNSET MYSTIQUE DESIGN SYSTEM
+ * SaaS AI / Agentic Platform UI (TAILWIND V4 SAFE)
  * =========================================================
  */
 
+/* =========================================================
+   FONTS
+   ========================================================= */
+
+@font-face {
+  font-family: "Integral CF";
+  src: url("@/assets/fonts/integral-cf/IntegralCF-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Integral CF";
+  src: url("@/assets/fonts/integral-cf/IntegralCF-RegularOblique.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Integral CF";
+  src: url("@/assets/fonts/integral-cf/IntegralCF-MediumOblique.woff2") format("woff2");
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Integral CF";
+  src: url("@/assets/fonts/integral-cf/IntegralCF-DemiBoldOblique.woff2") format("woff2");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* =========================================================
+   THEME TOKENS
+   ========================================================= */
+
 @theme {
-  /* Notre palette "Sunset Mystique" personnalisée */
   --color-sunset-bg: #010108;
   --color-sunset-surface: #20115b;
   --color-sunset-primary: #7232f2;
   --color-sunset-secondary: #c876ff;
   --color-sunset-accent: #f6b3e5;
 
-  /* Polices élégantes */
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Integral CF", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Base Styles */
+/* =========================================================
+   BASE TYPOGRAPHY (IMPORTANT FIX)
+   ========================================================= */
+
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-sunset-bg text-sunset-accent font-sans antialiased min-h-screen selection:bg-sunset-primary selection:text-white;
-    /* Empêche le rebond du scroll sur Mac pour un effet application native */
+    @apply bg-sunset-bg text-sunset-accent font-sans antialiased min-h-screen;
+
     overscroll-behavior-y: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    @apply bg-sunset-primary text-white;
+  }
+
+  h1 {
+    font-weight: 400;
+    font-style: normal;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: -0.01em;
+  }
+
+  h3,
+  h4 {
+    font-weight: 500;
+    font-style: normal;
+  }
+
+  p {
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1.6;
+    opacity: 0.9;
+  }
+
+  strong {
+    font-weight: 700;
+  }
+
+  em {
+    font-style: italic;
   }
 }
 
-/* Liquidglass & Premium UI Utilities */
+/* =========================================================
+   GLASS SYSTEM
+   ========================================================= */
+
 @layer utilities {
   .liquid-glass {
-    @apply bg-sunset-surface/30 backdrop-blur-xl border border-sunset-secondary/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)];
+    background: rgba(32, 17, 91, 0.3);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(200, 118, 255, 0.2);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
   }
 
   .liquid-glass-strong {
-    @apply bg-sunset-surface/50 backdrop-blur-2xl border border-sunset-accent/30 shadow-[0_8px_32px_rgba(32,17,91,0.3)];
+    background: rgba(32, 17, 91, 0.5);
+    backdrop-filter: blur(40px);
+    border: 1px solid rgba(246, 179, 229, 0.3);
+    box-shadow: 0 8px 40px rgba(32, 17, 91, 0.4);
   }
 
   .liquid-glow {
@@ -42,10 +138,81 @@
   }
 
   .liquid-glow-hover {
-    @apply transition-all duration-500 ease-out hover:shadow-[0_0_50px_-15px_var(--color-sunset-secondary)];
+    transition: all 0.5s ease-out;
   }
 
+  .liquid-glow-hover:hover {
+    box-shadow: 0 0 60px -15px var(--color-sunset-secondary);
+  }
+}
+
+/* =========================================================
+   TYPOGRAPHY HELPERS
+   ========================================================= */
+
+@layer utilities {
+  .text-hero {
+    @apply text-5xl md:text-7xl tracking-tighter;
+    font-weight: 400;
+  }
+
+  .text-title {
+    @apply text-3xl md:text-5xl;
+    font-weight: 400;
+  }
+
+  .text-subtitle {
+    @apply text-lg md:text-xl opacity-80;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .text-label {
+    @apply text-xs uppercase tracking-widest opacity-70;
+  }
+
+  .text-ai {
+    @apply text-sm md:text-base opacity-90;
+    font-weight: 400;
+    line-height: 1.7;
+  }
+}
+
+/* =========================================================
+   AI EFFECTS
+   ========================================================= */
+
+@layer utilities {
+  .ai-glow {
+    background: radial-gradient(circle at 50% 50%,
+        rgba(114, 50, 242, 0.25),
+        transparent 60%);
+  }
+
+  .ai-border {
+    border: 1px solid rgba(200, 118, 255, 0.2);
+  }
+
+  .glass-card {
+    border-radius: 1rem;
+    padding: 1.5rem;
+    background: rgba(32, 17, 91, 0.3);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(200, 118, 255, 0.2);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* =========================================================
+   TEXT GRADIENTS
+   ========================================================= */
+
+@layer utilities {
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-sunset-secondary to-sunset-accent;
+  }
+
+  .text-gradient-strong {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-sunset-primary via-sunset-secondary to-sunset-accent;
   }
 }

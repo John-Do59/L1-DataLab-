@@ -9,9 +9,25 @@ import bgStadium1 from '../assets/backgrounds/bg_stadium_1.jpg'
 
 const authStore = useAuthStore()
 
-const matches = ref<any[]>([])
+interface MatchData {
+  id: number | string
+  match_date: string
+  status: string
+  home_team: { name: string }
+  away_team: { name: string }
+}
+
+interface PredictionData {
+  homeTeam: string
+  awayTeam: string
+  probH: number
+  probD: number
+  probA: number
+}
+
+const matches = ref<MatchData[]>([])
 const loadingHero = ref(false)
-const topPrediction = ref<any>(null)
+const topPrediction = ref<PredictionData | null>(null)
 
 const fetchMatches = async () => {
   try {
@@ -44,8 +60,9 @@ onMounted(async () => {
   await fetchMatches()
   
   // Par défaut, on lance la prédiction sur le premier match disponible
-  if (matches.value.length > 0) {
-    runPrediction(matches.value[0].home_team.name, matches.value[0].away_team.name)
+  const firstMatch = matches.value[0]
+  if (firstMatch) {
+    runPrediction(firstMatch.home_team.name, firstMatch.away_team.name)
   }
 })
 </script>
