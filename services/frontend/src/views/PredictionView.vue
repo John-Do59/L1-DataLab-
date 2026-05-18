@@ -200,18 +200,23 @@
         </ul>
       </div>
 
-      <!-- Predict Button -->
-      <button 
-        @click="runPrediction"
-        :disabled="!canPredict || predictionState === 'loading'"
-        class="relative w-[500px] h-16 rounded-2xl border border-white/20 bg-gradient-to-b from-[#111936] to-[#060b19] overflow-hidden group hover:border-cyan-400/50 transition-colors disabled:opacity-50"
-      >
-        <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        <div class="relative z-10 flex items-center justify-center gap-4 h-full">
-          <svg class="w-5 h-5 text-white/70" :class="{'animate-spin text-cyan-400': predictionState === 'loading'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-          <span class="text-xl font-bold text-white tracking-[0.4em] uppercase">{{ predictionState === 'reveal' ? 'REDIRE' : 'PRÉDIRE' }}</span>
+      <!-- Predict Button & Model Info -->
+      <div class="flex flex-col items-center gap-2">
+        <button 
+          @click="runPrediction"
+          :disabled="!canPredict || predictionState === 'loading'"
+          class="relative w-[500px] h-16 rounded-2xl border border-white/20 bg-gradient-to-b from-[#111936] to-[#060b19] overflow-hidden group hover:border-cyan-400/50 transition-colors disabled:opacity-50"
+        >
+          <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div class="relative z-10 flex items-center justify-center gap-4 h-full">
+            <svg class="w-5 h-5 text-white/70" :class="{'animate-spin text-cyan-400': predictionState === 'loading'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            <span class="text-xl font-bold text-white tracking-[0.4em] uppercase">{{ predictionState === 'reveal' ? 'REDIRE' : 'PRÉDIRE' }}</span>
+          </div>
+        </button>
+        <div v-if="predictionState === 'reveal' && result.model" class="text-[9px] font-mono tracking-wider text-white/40 uppercase">
+          Moteur Actif: <span class="text-cyan-400 font-bold">{{ result.model }}</span> (<span class="text-purple-400 font-bold">{{ result.version }}</span>)
         </div>
-      </button>
+      </div>
 
       <!-- Confidence Gauge -->
       <div class="w-[300px] h-[140px] bg-[#060b19]/80 border border-white/10 rounded-2xl p-5 backdrop-blur-md flex items-center justify-between shadow-[0_0_20px_rgba(0,0,0,0.5)]">
@@ -320,7 +325,9 @@ const runPrediction = async () => {
       awayProb: probs.A,
       drawProb: probs.D,
       confidence: data.confidence_score || Math.round(Math.max(probs.H, probs.D, probs.A) * 100),
-      explainability: data.explainability || mockFactors
+      explainability: data.explainability || mockFactors,
+      model: data.model,
+      version: data.version
     }
     predictionState.value = 'reveal'
     loadingProgress.value = 100

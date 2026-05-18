@@ -166,7 +166,9 @@ async def predict_match(
         "probabilities": probs,
         "confidence_score": confidence,
         "explainability": explainability,
-        "created_at": saved_pred.created_at
+        "created_at": saved_pred.created_at,
+        "model": ml_response.get("model"),
+        "version": ml_response.get("version")
     }
 
 @app.get("/matches", response_model=List[MatchResponse])

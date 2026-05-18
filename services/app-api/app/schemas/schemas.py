@@ -39,6 +39,8 @@ class PredictionResponse(BaseModel):
     confidence_score: float = 0.0
     explainability: Dict[str, str] = {}
     created_at: datetime
+    model: Optional[str] = None
+    version: Optional[str] = None
 
     class Config:
         from_attributes = True
