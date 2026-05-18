@@ -8,18 +8,23 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const username = ref('')
+const email = ref('')
 const password = ref('')
 const errorMsg = ref('')
 const loading = ref(false)
 
-const handleLogin = async () => {
+const handleRegister = async () => {
   loading.value = true
   errorMsg.value = ''
   try {
-    await authStore.login(username.value, password.value)
+    await authStore.register(username.value, email.value, password.value)
     router.push('/dashboard')
-  } catch {
-    errorMsg.value = "Identifiants invalides."
+  } catch (err: any) {
+    if (err.response && err.response.data && err.response.data.detail) {
+      errorMsg.value = err.response.data.detail
+    } else {
+      errorMsg.value = "Erreur lors de la création du compte."
+    }
   } finally {
     loading.value = false
   }
@@ -39,14 +44,14 @@ const handleLogin = async () => {
     <div class="absolute w-[300px] h-[300px] bg-sunset-primary/30 rounded-full blur-[100px] top-[10%] left-[20%] pointer-events-none"></div>
     <div class="absolute w-[400px] h-[400px] bg-sunset-secondary/20 rounded-full blur-[120px] bottom-[10%] right-[10%] pointer-events-none"></div>
 
-    <!-- Login Card Liquidglass -->
-    <div class="liquid-glass-strong w-full max-w-md p-8 rounded-3xl relative z-10 liquid-glow">
+    <!-- Register Card Liquidglass -->
+    <div class="liquid-glass-strong w-full max-w-md p-8 rounded-3xl relative z-10 liquid-glow mt-8">
       <div class="text-center mb-8">
-        <h2 class="text-3xl font-bold text-white tracking-tight">Welcome Back</h2>
-        <p class="text-sunset-secondary/70 text-sm mt-2">Connectez-vous pour accéder au L1 DataLab</p>
+        <h2 class="text-3xl font-bold text-white tracking-tight">Create Account</h2>
+        <p class="text-sunset-secondary/70 text-sm mt-2">Rejoignez le L1 DataLab</p>
       </div>
 
-      <form @submit.prevent="handleLogin" class="space-y-6">
+      <form @submit.prevent="handleRegister" class="space-y-6">
         <div>
           <label class="block text-sm font-medium text-sunset-accent mb-2">Username</label>
           <input 
@@ -59,6 +64,17 @@ const handleLogin = async () => {
         </div>
 
         <div>
+          <label class="block text-sm font-medium text-sunset-accent mb-2">Email</label>
+          <input 
+            v-model="email"
+            type="email" 
+            class="w-full bg-sunset-bg/50 border border-sunset-primary/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-sunset-secondary transition-colors"
+            placeholder="john@example.com"
+            required
+          />
+        </div>
+
+        <div>
           <label class="block text-sm font-medium text-sunset-accent mb-2">Password</label>
           <input 
             v-model="password"
@@ -66,6 +82,7 @@ const handleLogin = async () => {
             class="w-full bg-sunset-bg/50 border border-sunset-primary/30 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-sunset-secondary transition-colors"
             placeholder="••••••••"
             required
+            minlength="6"
           />
         </div>
 
@@ -78,15 +95,15 @@ const handleLogin = async () => {
           :disabled="loading"
           class="w-full bg-gradient-to-r from-sunset-primary to-sunset-secondary hover:from-sunset-secondary hover:to-sunset-accent text-white font-semibold py-3 rounded-xl transition-all hover:shadow-[0_0_20px_-5px_#c876ff] disabled:opacity-50"
         >
-          <span v-if="!loading">Sign In</span>
-          <span v-else class="animate-pulse">Authenticating...</span>
+          <span v-if="!loading">Sign Up</span>
+          <span v-else class="animate-pulse">Creating account...</span>
         </button>
       </form>
       
       <div class="mt-6 text-center">
         <p class="text-sunset-secondary/60 text-sm">
-          Don't have an account? 
-          <router-link to="/register" class="text-sunset-accent hover:underline">Create one</router-link>
+          Already have an account? 
+          <router-link to="/login" class="text-sunset-accent hover:underline">Sign In</router-link>
         </p>
       </div>
     </div>

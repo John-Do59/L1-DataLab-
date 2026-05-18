@@ -46,11 +46,27 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function register(username: string, email: string, password: string) {
+    try {
+      const response = await api.post('/users', {
+        username,
+        email,
+        password
+      })
+      // Si la création réussit, on connecte l'utilisateur dans la foulée
+      await login(username, password)
+      return true
+    } catch (error) {
+      console.error("Registration failed", error)
+      throw error
+    }
+  }
+
   function logout() {
     token.value = null
     user.value = null
     localStorage.removeItem('access_token')
   }
 
-  return { token, user, isAuthenticated, login, logout, fetchUser }
+  return { token, user, isAuthenticated, login, logout, fetchUser, register }
 })

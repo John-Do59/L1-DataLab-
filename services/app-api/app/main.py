@@ -15,8 +15,17 @@ from .repositories.match_repository import MatchRepository
 from .repositories.prediction_repository import PredictionRepository
 from .services.ml_client import ml_client
 from .services.feature_service import FeatureService
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Ligue 1 Professional API", version="2.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080", "http://localhost:5173", "*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
