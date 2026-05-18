@@ -57,49 +57,56 @@ class LFPClient:
         return url
 
     async def get_current_matchday(self):
+        gw_num = 34 # Default
         data = await self._fetch("/championship-calendar/1/nearest-game-weeks", ttl=30)
-        
-        if data and "nearestGameWeeks" in data and data["nearestGameWeeks"].get("currentGameWeek"):
-            gw_info = data["nearestGameWeeks"]["currentGameWeek"]
-            gw_num = str(gw_info["gameWeekNumber"])
-            calendar = await self._fetch("/championship-calendar/1", ttl=60)
-            clubs_data = await self._fetch("/championship-clubs", ttl=3600)
+        if data and isinstance(data, dict) and "nearestGameWeeks" in data and data["nearestGameWeeks"].get("currentGameWeek"):
+            gw_num = int(data["nearestGameWeeks"]["currentGameWeek"].get("gameWeekNumber", 34))
             
-            clubs_map = {}
-            if clubs_data and "championshipsClubs" in clubs_data:
-                clubs_map = clubs_data["championshipsClubs"]
+        clubs_data = await self._fetch("/championship-clubs", ttl=3600)
+        clubs_map = {}
+        if clubs_data and isinstance(clubs_data, dict) and "championshipsClubs" in clubs_data:
+            clubs_map = clubs_data["championshipsClubs"]
+            
+        def get_club(club_id):
+            if not club_id: return {}
+            if club_id in clubs_map: return clubs_map[club_id]
+            alt_id = club_id.replace("_2024_", "_2025_")
+            if alt_id in clubs_map: return clubs_map[alt_id]
+            return clubs_map.get(club_id.replace("_2025_", "_2024_"), {})
 
-            if calendar and "gameWeeks" in calendar:
-                gw_details = calendar["gameWeeks"].get(gw_num, {})
-                matches = []
-                for m in gw_details.get("matches", []):
-                    match_obj = m.get("match", {})
-                    home_id = match_obj.get("home", {}).get("clubId")
-                    away_id = match_obj.get("away", {}).get("clubId")
-                    
-                    home_club = clubs_map.get(home_id, {})
-                    away_club = clubs_map.get(away_id, {})
-                    
-                    home_name = home_club.get("shortName", "Home")
-                    away_name = away_club.get("shortName", "Away")
-                    
-                    home_logo = self._format_url(home_club.get("assets", {}).get("logo", {}).get("small"))
-                    away_logo = self._format_url(away_club.get("assets", {}).get("logo", {}).get("small"))
-                    
-                    score = match_obj.get("result", {}).get("score")
-                    
-                    matches.append({
-                        "id": match_obj.get("id", ""),
-                        "match_date": match_obj.get("date", ""),
-                        "status": "played" if score else "preMatch",
-                        "home_team": {"name": home_name, "logo": home_logo},
-                        "away_team": {"name": away_name, "logo": away_logo},
-                        "home_score": score.get("home") if score else None,
-                        "away_score": score.get("away") if score else None,
-                        "gameweek": int(gw_num)
-                    })
-                return {"gameweek": int(gw_num), "matches": matches}
-        return None
+        matches_data = self._get_fallback_data("championship-calendar")
+        if not matches_data:
+            return {"gameweek": gw_num, "matches": []}
+            
+        gw_matches = [m for m in matches_data if m.get("gameweek") == gw_num]
+        matches = []
+        for match_obj in gw_matches:
+            home_id = match_obj.get("home_team_id")
+            away_id = match_obj.get("away_team_id")
+            
+            home_club = get_club(home_id)
+            away_club = get_club(away_id)
+            
+            home_name = home_club.get("shortName", "Home")
+            away_name = away_club.get("shortName", "Away")
+            
+            home_logo = self._format_url(home_club.get("assets", {}).get("logo", {}).get("small"))
+            away_logo = self._format_url(away_club.get("assets", {}).get("logo", {}).get("small"))
+            
+            score_h = match_obj.get("home_score")
+            score_a = match_obj.get("away_score")
+            
+            matches.append({
+                "id": match_obj.get("match_id", ""),
+                "match_date": match_obj.get("kickoff", ""),
+                "status": "played" if match_obj.get("status") == "fullTime" else "preMatch",
+                "home_team": {"name": home_name, "logo": home_logo},
+                "away_team": {"name": away_name, "logo": away_logo},
+                "home_score": score_h,
+                "away_score": score_a,
+                "gameweek": gw_num
+            })
+        return {"gameweek": gw_num, "matches": matches}
 
     async def get_standings(self):
         data = await self._fetch("/championship-standings/1/general?season=2025", ttl=60)
