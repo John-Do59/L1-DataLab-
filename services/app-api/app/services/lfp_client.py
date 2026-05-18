@@ -90,8 +90,8 @@ class LFPClient:
             home_name = home_club.get("shortName", "Home")
             away_name = away_club.get("shortName", "Away")
             
-            home_logo = self._format_url(home_club.get("assets", {}).get("logo", {}).get("small"))
-            away_logo = self._format_url(away_club.get("assets", {}).get("logo", {}).get("small"))
+            home_logo = self._format_url(home_club.get("championships", {}).get("1", {}).get("assets", {}).get("logo", {}).get("small"))
+            away_logo = self._format_url(away_club.get("championships", {}).get("1", {}).get("assets", {}).get("logo", {}).get("small"))
             
             score_h = match_obj.get("home_score")
             score_a = match_obj.get("away_score")
@@ -165,7 +165,7 @@ class LFPClient:
                     "goals": scorer.get("totalGoals", 0),
                     "matches": scorer.get("totalScoredMatches", 0),
                     "photo": self._format_url(ident.get("assets", {}).get("scorerPhoto", {}).get("small")),
-                    "club_logo": self._format_url(club_info.get("assets", {}).get("logo", {}).get("small"))
+                    "club_logo": self._format_url(club_info.get("championships", {}).get("1", {}).get("assets", {}).get("logo", {}).get("small"))
                 })
             return result
         return []
