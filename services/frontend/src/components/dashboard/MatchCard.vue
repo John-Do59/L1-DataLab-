@@ -6,6 +6,8 @@ defineProps<{
   awayTeam: string
   date: string
   status: string
+  homeScore?: number | null
+  awayScore?: number | null
   prediction?: { probH: number, probD: number, probA: number }
 }>()
 </script>
@@ -25,7 +27,12 @@ defineProps<{
       <div class="flex flex-col items-start gap-1">
         <span class="text-white font-medium text-lg">{{ homeTeam }}</span>
       </div>
-      <span class="text-sunset-secondary/40 font-black text-sm italic">vs</span>
+      <div v-if="homeScore !== undefined && awayScore !== undefined && homeScore !== null && awayScore !== null" class="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-lg border border-white/10">
+        <span class="text-xl font-bold text-white">{{ homeScore }}</span>
+        <span class="text-sunset-accent/50">-</span>
+        <span class="text-xl font-bold text-white">{{ awayScore }}</span>
+      </div>
+      <span v-else class="text-sunset-secondary/40 font-black text-sm italic">vs</span>
       <div class="flex flex-col items-end gap-1">
         <span class="text-white font-medium text-lg">{{ awayTeam }}</span>
       </div>

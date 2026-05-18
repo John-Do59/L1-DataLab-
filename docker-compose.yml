@@ -28,6 +28,15 @@ services:
       - postgres_app_data:/var/lib/postgresql/data
       - ./db/init_app.sql:/docker-entrypoint-initdb.d/init.sql
 
+  # --- CACHE ---
+  redis:
+    image: redis:7-alpine
+    container_name: l1-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   # --- APIS ---
   ml-api:
     build: 
@@ -49,9 +58,13 @@ services:
     depends_on:
       - db-app
       - ml-api
+      - redis
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-app:5432/l1_app
       ML_API_URL: http://ml-api:8000
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
     ports:
       - "8002:8000"
 
@@ -72,3 +85,4 @@ services:
 volumes:
   postgres_ml_data:
   postgres_app_data:
+  redis_data:

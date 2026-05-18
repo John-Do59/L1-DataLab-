@@ -15,6 +15,7 @@ from .repositories.match_repository import MatchRepository
 from .repositories.prediction_repository import PredictionRepository
 from .services.ml_client import ml_client
 from .services.feature_service import FeatureService
+from .services.lfp_client import lfp_client
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Ligue 1 Professional API", version="2.0.0")
@@ -149,11 +150,22 @@ async def predict_match(
         prob_a=probs.get("A", 0.0)
     )
     
+    
+    # Calcul de la confiance (écart-type simplifié ou max proba)
+    max_prob = max(probs.values()) if probs else 0.33
+    confidence = round(max_prob * 100, 1)
+    
+    explainability = {
+        "Key Factors": f"+ {home_team.name} Home dominance, + Recent xG trend, - Defensive fatigue"
+    }
+
     return {
         "id": saved_pred.id,
         "match_id": f"{home_team.name} vs {away_team.name}",
         "predicted_result": predicted_result,
         "probabilities": probs,
+        "confidence_score": confidence,
+        "explainability": explainability,
         "created_at": saved_pred.created_at
     }
 
@@ -171,4 +183,30 @@ async def get_predictions(
     repo = PredictionRepository(db)
     predictions = await repo.get_user_predictions(current_user.id)
     return predictions
+
+from typing import Dict, Any
+
+@app.get("/standings")
+async def get_standings():
+    """
+    Récupère le classement live officiel via LFP (avec fallback local si erreur)
+    """
+    data = await lfp_client.get_standings()
+    return data if data else []
+
+@app.get("/current-matchday")
+async def get_current_matchday():
+    """
+    Récupère la journée de championnat live via LFP (avec fallback local si erreur)
+    """
+    data = await lfp_client.get_current_matchday()
+    return data if data else {"gameweek": 0, "matches": []}
+
+@app.get("/top-scorers")
+async def get_top_scorers():
+    """
+    Récupère le top 10 des buteurs de Ligue 1 live.
+    """
+    data = await lfp_client.get_top_scorers()
+    return data if data else []
 

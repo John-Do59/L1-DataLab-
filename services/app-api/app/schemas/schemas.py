@@ -36,6 +36,8 @@ class PredictionResponse(BaseModel):
     match_id: str
     predicted_result: str
     probabilities: Dict[str, float]
+    confidence_score: float = 0.0
+    explainability: Dict[str, str] = {}
     created_at: datetime
 
     class Config:
@@ -45,7 +47,7 @@ class PredictionResponse(BaseModel):
 class TeamResponse(BaseModel):
     id: int
     name: str
-    elo_rating: float
+    elo_rating: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -68,6 +70,9 @@ class PredictionHistoryResponse(BaseModel):
     prob_d: float
     prob_a: float
     created_at: datetime
+    real_home_score: Optional[int] = None
+    real_away_score: Optional[int] = None
+    real_status: Optional[str] = None
 
     class Config:
         from_attributes = True

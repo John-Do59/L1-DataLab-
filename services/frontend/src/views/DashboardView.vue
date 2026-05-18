@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../api/axios'
-import HeroPredictionCard from '../components/dashboard/HeroPredictionCard.vue'
 import MatchCard from '../components/dashboard/MatchCard.vue'
-import InsightPanel from '../components/dashboard/InsightPanel.vue'
+import LeagueStandings from '../components/dashboard/LeagueStandings.vue'
+import TopScorers from '../components/dashboard/TopScorers.vue'
 import { useAuthStore } from '../stores/auth'
 import bgStadium1 from '../assets/backgrounds/bg_stadium_1.jpg'
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 interface MatchData {
   id: number | string
@@ -15,66 +17,39 @@ interface MatchData {
   status: string
   home_team: { name: string }
   away_team: { name: string }
-}
-
-interface PredictionData {
-  homeTeam: string
-  awayTeam: string
-  probH: number
-  probD: number
-  probA: number
+  home_score?: number | null
+  away_score?: number | null
 }
 
 const matches = ref<MatchData[]>([])
-const loadingHero = ref(false)
-const topPrediction = ref<PredictionData | null>(null)
+const currentGameweek = ref<number>(0)
 
 const fetchMatches = async () => {
   try {
-    const res = await api.get('/matches')
-    matches.value = res.data.slice(0, 4) // On prend les 4 prochains matchs
+    const res = await api.get('/current-matchday')
+    matches.value = res.data.matches
+    currentGameweek.value = res.data.gameweek
   } catch (e) {
     console.error("Failed to load matches", e)
   }
 }
 
-const runPrediction = async (home: string, away: string) => {
-  loadingHero.value = true
-  try {
-    const res = await api.post(`/predict?home_team_name=${encodeURIComponent(home)}&away_team_name=${encodeURIComponent(away)}`)
-    topPrediction.value = {
-      homeTeam: home,
-      awayTeam: away,
-      probH: res.data.probabilities.H,
-      probD: res.data.probabilities.D,
-      probA: res.data.probabilities.A
-    }
-  } catch (e) {
-    console.error("Prediction failed", e)
-  } finally {
-    loadingHero.value = false
-  }
+const runPrediction = (home: string, away: string) => {
+  router.push({ path: '/prediction', query: { home, away } })
 }
 
 onMounted(async () => {
   await fetchMatches()
-  
-  // Par défaut, on lance la prédiction sur le premier match disponible
-  const firstMatch = matches.value[0]
-  if (firstMatch) {
-    runPrediction(firstMatch.home_team.name, firstMatch.away_team.name)
-  }
 })
 </script>
 
 <template>
-  <!-- Background Image with Overlay -->
   <div class="fixed inset-0 z-[-1] pointer-events-none bg-[#010108]">
     <img :src="bgStadium1" alt="Stadium Background" class="w-full h-full object-cover opacity-80" />
     <div class="absolute inset-0 bg-gradient-to-t from-[#010108]/80 via-transparent to-transparent"></div>
   </div>
 
-  <div class="space-y-10 pb-12 w-full max-w-6xl mx-auto pt-8 relative z-10">
+  <div class="space-y-10 pb-12 w-full max-w-7xl mx-auto pt-8 relative z-10 px-4 sm:px-6 lg:px-8">
     
     <!-- Topbar AI Status -->
     <div class="flex justify-between items-end border-b border-sunset-primary/20 pb-6 relative">
@@ -82,9 +57,12 @@ onMounted(async () => {
       
       <div class="relative z-10">
         <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-sunset-accent tracking-tight">AI Command Center</h1>
-        <p class="text-sunset-secondary mt-1 font-medium">Welcome back, <span class="text-sunset-primary">{{ authStore.user?.username || 'Analyst' }}</span>.</p>
+        <p class="text-sunset-secondary mt-1 font-medium mb-4">Welcome back, <span class="text-sunset-primary">{{ authStore.user?.username || 'Analyst' }}</span>.</p>
+        <button @click="router.push('/prediction')" class="px-6 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:scale-105 transition-transform">
+          Accéder au Neural Core (Prédiction)
+        </button>
       </div>
-      <div class="flex items-center gap-3 liquid-glass px-4 py-2 rounded-xl relative z-10">
+      <div class="flex items-center gap-3 liquid-glass px-4 py-2 rounded-xl relative z-10 shadow-[0_0_15px_rgba(187,134,252,0.1)]">
         <span class="flex h-3 w-3 relative">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500 shadow-[0_0_8px_#22c55e]"></span>
@@ -93,54 +71,51 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Hero Section -->
-    <div class="w-full">
-      <HeroPredictionCard 
-        v-if="topPrediction"
-        :homeTeam="topPrediction.homeTeam"
-        :awayTeam="topPrediction.awayTeam"
-        :probH="topPrediction.probH"
-        :probD="topPrediction.probD"
-        :probA="topPrediction.probA"
-        :loading="loadingHero"
-      />
-      <!-- Loading Skeleton Premium -->
-      <div v-else class="h-[280px] w-full liquid-glass rounded-[23px] flex items-center justify-center border border-sunset-primary/10 relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-sunset-primary/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
-        <span class="text-sunset-accent/50 font-medium tracking-widest uppercase text-sm animate-pulse">Initializing Interface...</span>
-      </div>
-    </div>
-
-    <!-- Grid Layout: Matches & Insights -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Grid Layout: Matches & Standings -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
       
       <!-- Match List -->
-      <div class="lg:col-span-2 flex flex-col gap-5">
-        <h3 class="text-white font-bold text-xl tracking-wide flex items-center gap-2">
-          Upcoming Fixtures
-        </h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div class="xl:col-span-2 flex flex-col gap-5">
+        <div class="flex items-center justify-between">
+            <h3 class="text-white font-bold text-xl tracking-wide flex items-center gap-2">
+            Matchday {{ currentGameweek > 0 ? currentGameweek : 'Fixtures' }}
+            </h3>
+            <div class="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full z-10">
+              <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse-fast"></div>
+              <span class="text-xs font-bold text-red-500 tracking-wider">LIVE API</span>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div 
             v-for="match in matches" 
             :key="match.id" 
             @click="runPrediction(match.home_team.name, match.away_team.name)"
-            class="h-full"
+            class="h-full cursor-pointer group relative"
           >
+            <!-- AI Scan Effect Wrapper -->
+            <div class="absolute inset-0 z-20 pointer-events-none overflow-hidden rounded-[20px] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+               <div class="absolute inset-0 bg-gradient-to-b from-transparent via-sunset-accent/30 to-transparent h-[30%] w-full animate-[scan_2s_ease-in-out_infinite] blur-sm"></div>
+               <div class="absolute inset-0 border-2 border-sunset-accent/40 rounded-[20px]"></div>
+            </div>
+            
             <MatchCard 
               :homeTeam="match.home_team.name"
               :awayTeam="match.away_team.name"
               :date="new Date(match.match_date).toLocaleDateString()"
               :status="match.status"
+              :homeScore="match.home_score"
+              :awayScore="match.away_score"
             />
           </div>
         </div>
       </div>
 
-      <!-- Insight Panel -->
-      <div class="lg:col-span-1">
-        <InsightPanel 
-          insight="Marseille shows strong home form over the last 5 matches. Their xG creation in the final third has increased by 14% since the new tactical adjustment." 
-        />
+      <!-- Live Standings Panel -->
+      <div class="xl:col-span-1 flex flex-col gap-8">
+        <div class="h-[600px]">
+          <LeagueStandings />
+        </div>
+        <TopScorers />
       </div>
 
     </div>
@@ -148,9 +123,17 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(400%); }
+}
+
+.animate-pulse-fast {
+  animation: pulse-fast 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-fast {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .5; transform: scale(1.2); box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
 }
 </style>
