@@ -83,8 +83,33 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8002
 
+  # --- MONITORING ---
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: l1-prometheus
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - "9090:9090"
+    depends_on:
+      - ml-api
+
+  grafana:
+    image: grafana/grafana:9.5.2
+    container_name: l1-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
 
 volumes:
   postgres_ml_data:
   postgres_app_data:
   redis_data:
+  grafana_data:
