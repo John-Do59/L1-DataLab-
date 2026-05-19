@@ -3,7 +3,6 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
 import bgStadium1 from '../assets/backgrounds/bg_stadium_1.jpg'
 
-// Résolution dynamique de l'URL du ML API (sur le port 8001)
 const getMlApiUrl = () => {
   const host = window.location.hostname || 'localhost'
   return `http://${host}:8001`
@@ -14,15 +13,16 @@ const ML_API_URL = getMlApiUrl()
 // États réactifs
 const loading = ref(true)
 const modelInfo = ref<any>(null)
-const pipelineStatus = ref<any>({ status: 'idle', logs: 'Aucun log en cours.' })
+const pipelineState = ref<any>({ status: 'idle', current_step: 'idle', duration_seconds: 0, last_run: null })
+const runsHistory = ref<any[]>([])
+const pipelineLogs = ref('Aucun log en cours.')
 const retraining = ref(false)
 const errorMessage = ref('')
 const activeTab = ref<'calibration' | 'features'>('calibration')
 
-// Timer pour surveiller le pipeline en tâche de fond
+// Timer de polling
 let statusInterval: any = null
 
-// Features fixes pour l'importance du modèle (Random Forest)
 const featureImportances = [
   { name: 'elo_diff', label: 'Différence Elo (Général)', value: 0.285 },
   { name: 'odds_prob_home', label: 'Cotes Probabilité Domicile', value: 0.198 },
@@ -34,7 +34,6 @@ const featureImportances = [
   { name: 'home_avg_overall', label: 'Moyenne Globale FIFA Domicile', value: 0.050 }
 ]
 
-// Charger les infos du modèle Champion
 const fetchModelInfo = async () => {
   try {
     const res = await axios.get(`${ML_API_URL}/`)
@@ -42,55 +41,75 @@ const fetchModelInfo = async () => {
     errorMessage.value = ''
   } catch (e: any) {
     console.error("Impossible de charger les infos du modèle ML API", e)
-    errorMessage.value = "Le service ML-API est inaccessible. Veuillez vous assurer que le conteneur l1-ml-api est démarré sur le port 8001."
+    errorMessage.value = "Le service ML-API est inaccessible. Assurez-vous que l1-ml-api est démarré sur le port 8001."
   } finally {
     loading.value = false
   }
 }
 
-// Charger le statut du pipeline
-const fetchPipelineStatus = async () => {
+const fetchPipelineState = async () => {
   try {
-    const res = await axios.get(`${ML_API_URL}/pipeline/status`)
-    pipelineStatus.value = res.data
+    const res = await axios.get(`${ML_API_URL}/pipeline/state`)
+    pipelineState.value = res.data
     
-    if (res.data.status === 'running') {
+    if (res.data.status === 'RUNNING') {
       retraining.value = true
-      // Activer le polling si non existant
       if (!statusInterval) {
         startStatusPolling()
       }
     } else {
       retraining.value = false
-      if (statusInterval && res.data.status !== 'running') {
+      if (statusInterval) {
         stopStatusPolling()
-        await fetchModelInfo() // Rafraîchir les infos modèle si fini
+        await fetchModelInfo()
+        await fetchRunsHistory()
       }
     }
   } catch (e) {
-    console.error("Erreur de récupération du statut du pipeline", e)
+    console.error("Erreur de récupération de l'état du pipeline", e)
   }
 }
 
-// Lancer le réentraînement continu
+const fetchRunsHistory = async () => {
+  try {
+    const res = await axios.get(`${ML_API_URL}/pipeline/history`)
+    // Les plus récents en haut
+    runsHistory.value = [...res.data].reverse()
+  } catch (e) {
+    console.error("Erreur de récupération de l'historique", e)
+  }
+}
+
+const fetchPipelineLogs = async () => {
+  try {
+    const res = await axios.get(`${ML_API_URL}/pipeline/status`)
+    pipelineLogs.value = res.data.logs || 'Aucun log disponible.'
+  } catch (e) {
+    console.error("Erreur de récupération des logs", e)
+  }
+}
+
 const triggerRetraining = async () => {
   if (retraining.value) return
   try {
     retraining.value = true
     await axios.post(`${ML_API_URL}/pipeline/run`)
-    pipelineStatus.value.status = 'running'
-    pipelineStatus.value.logs = '🚀 Initialisation de la tâche asynchrone MLOps...\n'
+    pipelineState.value.status = 'RUNNING'
+    pipelineState.value.current_step = 'scraping'
+    pipelineLogs.value = '🚀 Démarrage du pipeline de réentraînement continu...\n'
     startStatusPolling()
   } catch (e) {
     retraining.value = false
     console.error("Échec du lancement du pipeline", e)
-    alert("Erreur lors du déclenchement du pipeline MLOps.")
+    alert("Erreur lors du déclenchement du pipeline.")
   }
 }
 
-// Polling intelligent des logs
 const startStatusPolling = () => {
-  statusInterval = setInterval(fetchPipelineStatus, 2000)
+  statusInterval = setInterval(async () => {
+    await fetchPipelineState()
+    await fetchPipelineLogs()
+  }, 2000)
 }
 
 const stopStatusPolling = () => {
@@ -100,7 +119,6 @@ const stopStatusPolling = () => {
   }
 }
 
-// Calcul de la courbe de calibration pour le SVG
 const calibrationPoints = computed(() => {
   if (!modelInfo.value?.metrics?.calibration_curve_h) return []
   const curve = modelInfo.value.metrics.calibration_curve_h
@@ -108,8 +126,6 @@ const calibrationPoints = computed(() => {
   
   if (curve.prob_pred && curve.prob_true) {
     for (let i = 0; i < curve.prob_pred.length; i++) {
-      // Les coordonnées SVG vont de 0 à 100% (on multiplie par 300 pour un cadre 300x300)
-      // Attention: en SVG l'origine y=0 est en haut, donc y_svg = 300 - (prob * 300)
       points.push({
         x: curve.prob_pred[i] * 300,
         y: 300 - (curve.prob_true[i] * 300)
@@ -125,9 +141,22 @@ const calibrationPathString = computed(() => {
   return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
 })
 
+const formatDate = (isoStr: string) => {
+  if (!isoStr) return '-'
+  const d = new Date(isoStr)
+  return d.toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 onMounted(async () => {
   await fetchModelInfo()
-  await fetchPipelineStatus()
+  await fetchPipelineState()
+  await fetchRunsHistory()
+  await fetchPipelineLogs()
 })
 
 onUnmounted(() => {
@@ -156,7 +185,7 @@ onUnmounted(() => {
           AI & MLOps <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400">Insights Dashboard</span>
         </h1>
         <p class="text-slate-400 mt-1.5 font-medium max-w-3xl">
-          Supervisez en direct les métriques du modèle Champion, monitorisez la dérive de concept (concept drift) et orchestrez les pipelines automatiques.
+          Supervisez l'état du modèle actif, surveillez la stabilité de prédiction glissante et gérez l'archivage auditable des runs.
         </p>
       </div>
 
@@ -279,7 +308,6 @@ onUnmounted(() => {
               <!-- reliability diagram drawing -->
               <div class="flex justify-center bg-black/30 border border-white/5 p-4 rounded-2xl">
                 <svg width="270" height="270" viewBox="0 0 300 300" class="overflow-visible font-mono text-[9px] fill-slate-500">
-                  <!-- Grille de fond -->
                   <line x1="0" y1="300" x2="300" y2="300" stroke="#334155" stroke-width="1" />
                   <line x1="0" y1="0" x2="0" y2="300" stroke="#334155" stroke-width="1" />
                   
@@ -291,21 +319,17 @@ onUnmounted(() => {
                   <line x1="150" y1="0" x2="150" y2="300" stroke="#1e293b" stroke-dasharray="2" stroke-width="1" />
                   <line x1="225" y1="0" x2="225" y2="300" stroke="#1e293b" stroke-dasharray="2" stroke-width="1" />
 
-                  <!-- Diagonale de calibration parfaite (y = x) -->
+                  <!-- Diagonale -->
                   <line x1="0" y1="300" x2="300" y2="0" stroke="#475569" stroke-width="1.5" stroke-dasharray="4" />
-                  <text x="210" y="80" fill="#475569" font-size="8">Calibration Parfaite</text>
+                  <text x="210" y="80" fill="#475569" font-size="8">Parfaite</text>
 
-                  <!-- Courbe réelle du modèle -->
+                  <!-- Courbe réelle -->
                   <path :d="calibrationPathString" fill="none" stroke="#f97316" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="drop-shadow-[0_0_4px_rgba(249,115,22,0.4)]" />
-                  
-                  <!-- Points sur la courbe -->
                   <circle v-for="(p, i) in calibrationPoints" :key="i" :cx="p.x" :cy="p.y" r="5" fill="#f97316" stroke="#ffffff" stroke-width="1.5" />
 
-                  <!-- Libellés des axes -->
                   <text x="150" y="325" text-anchor="middle" class="fill-slate-400 font-bold font-sans">Probabilité Prédite (Bins)</text>
-                  <text x="-150" y="-30" text-anchor="middle" transform="rotate(-90)" class="fill-slate-400 font-bold font-sans">Fréquence Réelle constatée</text>
+                  <text x="-150" y="-30" text-anchor="middle" transform="rotate(-90)" class="fill-slate-400 font-bold font-sans">Fréquence Réelle</text>
 
-                  <!-- Chiffres axes -->
                   <text x="-5" y="303" text-anchor="end">0.0</text>
                   <text x="-5" y="228" text-anchor="end">0.25</text>
                   <text x="-5" y="153" text-anchor="end">0.5</text>
@@ -319,27 +343,26 @@ onUnmounted(() => {
                 </svg>
               </div>
 
-              <!-- text and details -->
+              <!-- text details -->
               <div class="space-y-4">
                 <h4 class="font-bold text-white flex items-center gap-2">
                   <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
                   Calibration {{ modelInfo?.calibration || 'Isotonic' }} active
                 </h4>
                 <p class="text-xs text-slate-300 leading-relaxed">
-                  Dans les paris sportifs, prédire une probabilité de victoire est primordial. 
-                  Une calibration curve alignée sur la diagonale signifie que lorsque le modèle émet une confiance de <strong>60%</strong> sur un match de Ligue 1, l'équipe à domicile gagne précisément <strong>6 matchs sur 10</strong>.
+                  Une calibration curve alignée sur la diagonale signifie que lorsque le modèle émet une confiance de <strong>60%</strong> sur un match de Ligue 1, l'équipe gagne précisément <strong>6 matchs sur 10</strong>.
                 </p>
                 <div class="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-200 text-xs">
-                  <strong>💡 Platt vs Isotonic :</strong> La régression Isotonique (actuelle) réajuste de manière non paramétrique les probabilités brutes du Random Forest pour minimiser le Brier Score de validation temporelle, maximisant la fiabilité des cotes.
+                  La régression Isotonique réajuste les probabilités pour minimiser le Brier Score de validation temporelle, maximisant la fiabilité des cotes.
                 </div>
               </div>
             </div>
 
-            <!-- TAB 2: Feature Importance Bar Chart -->
+            <!-- TAB 2: Feature Importance -->
             <div v-if="activeTab === 'features'" class="space-y-4">
               <div class="flex items-center justify-between mb-2">
                 <h4 class="font-bold text-white text-sm">Importance relative des variables en production</h4>
-                <span class="text-xs text-slate-500">Normalisé sur 1.0 (Somme=100%)</span>
+                <span class="text-xs text-slate-500 font-mono">Somme = 100%</span>
               </div>
               
               <div class="space-y-3">
@@ -368,54 +391,45 @@ onUnmounted(() => {
               </svg>
             </div>
             <div>
-              <h3 class="text-xl font-bold text-white">Concept & Data Drift Monitoring</h3>
+              <h3 class="text-xl font-bold text-white">Indicateur de dérive de confiance glissante</h3>
               <p class="text-xs text-slate-400 mt-0.5">Surveillance en temps réel des distributions de confiance en inférence</p>
             </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
             
-            <!-- Drift Dial Indicator -->
             <div class="flex flex-col items-center justify-center p-4 bg-black/20 rounded-2xl border border-white/5">
-              <span class="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">État du drift</span>
+              <span class="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">État de stabilité</span>
               
               <div v-if="modelInfo?.drift_status === 0" class="flex flex-col items-center">
-                <div class="w-16 h-16 rounded-full bg-green-500/10 border-2 border-green-500 flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.3)] animate-pulse">
+                <div class="w-16 h-16 rounded-full bg-green-500/10 border-2 border-green-500 flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.3)]">
                   <span class="text-green-400 text-xs font-bold">STABLE</span>
                 </div>
-                <span class="text-[11px] text-green-300/80 mt-3 font-semibold text-center">Distribution Conforme</span>
+                <span class="text-[11px] text-green-300/80 mt-3 font-semibold text-center">Inférence Conforme</span>
               </div>
               
               <div v-else-if="modelInfo?.drift_status === 1" class="flex flex-col items-center">
-                <div class="w-16 h-16 rounded-full bg-orange-500/10 border-2 border-orange-500 flex items-center justify-center shadow-[0_0_15px_rgba(249,115,22,0.3)] animate-pulse">
-                  <span class="text-orange-400 text-[10px] font-bold text-center">SUSPECT</span>
+                <div class="w-16 h-16 rounded-full bg-orange-500/10 border-2 border-orange-500 flex items-center justify-center shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+                  <span class="text-orange-400 text-[10px] font-bold text-center">DEVIATION</span>
                 </div>
-                <span class="text-[11px] text-orange-300/80 mt-3 font-semibold text-center">Retrain Suggéré</span>
+                <span class="text-[11px] text-orange-300/80 mt-3 font-semibold text-center">Retrain suggéré</span>
               </div>
 
               <div v-else class="flex flex-col items-center">
-                <div class="w-16 h-16 rounded-full bg-red-500/10 border-2 border-red-500 flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-ping">
-                  <span class="text-red-400 text-[10px] font-bold text-center">CRITIQUE</span>
+                <div class="w-16 h-16 rounded-full bg-red-500/10 border-2 border-red-500 flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                  <span class="text-red-400 text-[10px] font-bold text-center">DRIFT</span>
                 </div>
-                <span class="text-[11px] text-red-300/80 mt-3 font-semibold text-center">Retrain Urgent</span>
+                <span class="text-[11px] text-red-300/80 mt-3 font-semibold text-center">Retrain urgent</span>
               </div>
             </div>
 
-            <!-- Drift Explanation -->
             <div class="md:col-span-2 space-y-3">
-              <h4 class="text-sm font-bold text-white">Algorithme d'Analyse Globale</h4>
+              <h4 class="text-sm font-bold text-white">Analyse glissante pragmatique</h4>
               <p class="text-xs text-slate-300 leading-relaxed">
-                Le football français évolue constamment (mercato d'hiver, changements d'entraîneurs, dynamiques de fin de saison). 
-                Notre algorithme compare la confiance glissante en production sur les 20 dernières requêtes. Une baisse de confiance moyenne est synonyme de comportement imprévu des équipes et lève un drapeau.
+                Le football français évolue continuellement (blessures, transferts). Cet indicateur mesure la certitude moyenne du modèle sur les 20 dernières requêtes. Une baisse significative signale une dérive comportementale et déclenche une suggestion de réentraînement.
               </p>
-              <div class="text-[11px] text-slate-500 flex items-center gap-1 font-semibold">
-                <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-                Télémétrie en cours d'alimentation via l'endpoint <strong>/metrics</strong> de production.
-              </div>
             </div>
-
           </div>
-
         </div>
 
       </div>
@@ -434,9 +448,22 @@ onUnmounted(() => {
             </h3>
             
             <p class="text-xs text-slate-400 leading-relaxed">
-              Exécutez de manière asynchrone le pipeline de retraining automatique :
-              normalisation Elo, feature engineering, et validation **Champion-Challenger** par Brier Score.
+              Exécutez asynchronement le pipeline de retraining : normalisation Elo, feature engineering et validation Champion-Challenger.
             </p>
+
+            <!-- Étape de Pipeline Active Progress -->
+            <div v-if="retraining" class="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-3">
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-slate-400">Étape active :</span>
+                <span class="font-mono text-cyan-400 uppercase font-bold">{{ pipelineState.current_step }}</span>
+              </div>
+              <div class="grid grid-cols-4 gap-1.5">
+                <div class="h-1.5 rounded-full" :class="['scraping', 'elo', 'dataset', 'training'].indexOf(pipelineState.current_step) >= 0 ? 'bg-cyan-500' : 'bg-white/5'"></div>
+                <div class="h-1.5 rounded-full" :class="['elo', 'dataset', 'training'].indexOf(pipelineState.current_step) >= 0 ? 'bg-cyan-500' : 'bg-white/5'"></div>
+                <div class="h-1.5 rounded-full" :class="['dataset', 'training'].indexOf(pipelineState.current_step) >= 0 ? 'bg-cyan-500' : 'bg-white/5'"></div>
+                <div class="h-1.5 rounded-full" :class="pipelineState.current_step === 'training' ? 'bg-cyan-500 animate-pulse' : 'bg-white/5'"></div>
+              </div>
+            </div>
 
             <!-- Bouton Trigger -->
             <button 
@@ -460,13 +487,13 @@ onUnmounted(() => {
             <div class="flex items-center justify-between mb-2">
               <span class="text-[11px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-cyan-400" :class="{ 'animate-pulse': retraining }"></span>
-                Console de Build MLOps
+                Console de Build
               </span>
-              <span class="text-[9px] font-mono text-slate-500">{{ pipelineStatus?.status || 'idle' }}</span>
+              <span class="text-[9px] font-mono text-slate-500">{{ pipelineState?.status || 'idle' }}</span>
             </div>
             
             <div class="bg-black/60 border border-white/5 rounded-2xl p-4 font-mono text-[10px] text-cyan-300 h-64 overflow-y-auto shadow-inner flex flex-col">
-              <pre class="whitespace-pre-wrap flex-1">{{ pipelineStatus?.logs }}</pre>
+              <pre class="whitespace-pre-wrap flex-1">{{ pipelineLogs }}</pre>
             </div>
           </div>
 
@@ -475,6 +502,63 @@ onUnmounted(() => {
       </div>
 
     </div>
+
+    <!-- Section Historique / Registre de Runs Auditable -->
+    <div v-if="!loading && !errorMessage" class="liquid-glass border border-white/[0.08] rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+      <div class="flex items-center justify-between border-b border-white/[0.08] pb-4 mb-6">
+        <div>
+          <h3 class="text-xl font-bold text-white">Registre Historique des Runs</h3>
+          <p class="text-xs text-slate-400 mt-1">Auditabilité et traçabilité complète des entraînements MLOps</p>
+        </div>
+        <span class="text-xs font-mono text-cyan-400 font-bold bg-cyan-500/10 px-3 py-1 rounded-lg border border-cyan-500/20">
+          {{ runsHistory.length }} Runs enregistrés
+        </span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="text-slate-400 border-b border-white/[0.05] uppercase tracking-wider font-semibold">
+              <th class="py-3 px-4">Date de run</th>
+              <th class="py-3 px-4">Version ID</th>
+              <th class="py-3 px-4">Modèle</th>
+              <th class="py-3 px-4">Calibrateur</th>
+              <th class="py-3 px-4 text-center">Brier Score</th>
+              <th class="py-3 px-4 text-center">Accuracy</th>
+              <th class="py-3 px-4 text-center">Statut Promotion</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/[0.02]">
+            <tr v-for="run in runsHistory" :key="run.version" class="hover:bg-white/[0.02] transition-colors text-slate-200">
+              <td class="py-3.5 px-4 font-medium text-slate-300">{{ formatDate(run.timestamp) }}</td>
+              <td class="py-3.5 px-4 font-mono text-cyan-400 font-bold">{{ run.version }}</td>
+              <td class="py-3.5 px-4">{{ run.model_name }}</td>
+              <td class="py-3.5 px-4 uppercase font-semibold text-slate-400 text-[10px]">{{ run.calibration_method }}</td>
+              <td class="py-3.5 px-4 text-center font-mono text-indigo-300">{{ run.metrics?.brier_score?.toFixed(4) || '-' }}</td>
+              <td class="py-3.5 px-4 text-center font-mono text-emerald-400 font-bold">{{ run.metrics?.accuracy ? `${(run.metrics.accuracy * 100).toFixed(1)}%` : '-' }}</td>
+              <td class="py-3.5 px-4 text-center">
+                <span 
+                  v-if="run.promoted" 
+                  class="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 rounded-md"
+                >
+                  CHAMPION PROMÛ
+                </span>
+                <span 
+                  v-else 
+                  class="px-2.5 py-1 bg-red-500/10 border border-red-500/20 text-[10px] font-bold text-red-400 rounded-md"
+                >
+                  CONSERVÉ / REJETÉ
+                </span>
+              </td>
+            </tr>
+            <tr v-if="runsHistory.length === 0">
+              <td colspan="7" class="py-8 text-center text-slate-500">Aucun run disponible dans l'historique. Déclenchez le pipeline pour en générer un.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </template>
 

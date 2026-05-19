@@ -189,12 +189,38 @@ async def predict_match(
     predicted_result = ml_response["prediction"]
     probs = ml_response["probabilities"]
     
-    # 4. Sauvegarde dans l'historique
+    # 4. Sauvegarde dans l'historique avec résolution dynamique du match
+    from sqlalchemy import select
+    from app.models.models import Match
+    from datetime import datetime
+    
+    # Recherche ou création dynamique du match en base de données applicative
+    match_query = select(Match).where(
+        (Match.home_team_id == home_team.id) &
+        (Match.away_team_id == away_team.id)
+    )
+    match_res = await db.execute(match_query)
+    match_obj = match_res.scalars().first()
+    
+    if not match_obj:
+        match_obj = Match(
+            home_team_id=home_team.id,
+            away_team_id=away_team.id,
+            match_date=datetime.utcnow(),
+            season="2025/26",
+            round=34,
+            odds_h=odds_h,
+            odds_d=odds_d,
+            odds_a=odds_a,
+            status="scheduled"
+        )
+        db.add(match_obj)
+        await db.flush() # Récupère automatiquement match_obj.id
+        
     pred_repo = PredictionRepository(db)
-    # Note: Dans une vraie prod, on aurait un MatchID réel. Ici on stocke 0 par défaut pour les tests live.
     saved_pred = await pred_repo.save_prediction(
         user_id=current_user.id,
-        match_id=0, # À lier à la table Match pour une journée de championnat
+        match_id=match_obj.id, # ID 100% valide
         result=predicted_result,
         prob_h=probs.get("H", 0.0),
         prob_d=probs.get("D", 0.0),
@@ -206,9 +232,10 @@ async def predict_match(
     max_prob = max(probs.values()) if probs else 0.33
     confidence = round(max_prob * 100, 1)
     
-    explainability = {
-        "Key Factors": f"+ {home_team.name} Home dominance, + Recent xG trend, - Defensive fatigue"
-    }
+    explainability = ml_response.get("explainability", {
+        "Facteur 1": "Avantage à domicile",
+        "Facteur 2": "Supériorité technique générale"
+    })
 
     return {
         "id": saved_pred.id,

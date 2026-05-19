@@ -23,8 +23,11 @@ sys.path.append(str(PROJECT_ROOT))
 from ml.training.train_models import train_and_evaluate
 
 MODELS_DIR = PROJECT_ROOT / "ml" / "models"
+ARCHIVE_DIR = MODELS_DIR / "archive"
+CHAMPION_DIR = MODELS_DIR / "champion"
 METADATA_PATH = MODELS_DIR / "metadata.json"
 HISTORY_PATH = MODELS_DIR / "runs_history.json"
+STATE_PATH = MODELS_DIR / "pipeline_state.json"
 
 def run_subprocess_script(script_path: Path, label: str) -> bool:
     print(f"\n🚀 Exécution de : {label}...")
@@ -34,7 +37,6 @@ def run_subprocess_script(script_path: Path, label: str) -> bool:
         print(f"--- Erreurs --- \n{result.stderr}")
         return False
     print(f"✅ {label} complété avec succès.")
-    # Optionnel: afficher une partie de la sortie
     if result.stdout:
         print("\n".join(result.stdout.strip().split("\n")[-5:]))
     return True
@@ -48,6 +50,24 @@ def load_current_champion_metadata():
             print(f"⚠️ Erreur lors du chargement de metadata.json : {e}")
     return None
 
+def update_pipeline_state(status: str, step: str, duration: int = 0):
+    """
+    Met à jour le fichier d'état du pipeline pour le monitoring temps réel.
+    """
+    state = {
+        "last_run": datetime.now().isoformat(),
+        "status": status,
+        "duration_seconds": duration,
+        "current_step": step
+    }
+    try:
+        STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(STATE_PATH, "w") as f:
+            json.dump(state, f, indent=2)
+        print(f"💾 État du pipeline enregistré : [{status}] à l'étape [{step}]")
+    except Exception as e:
+        print(f"⚠️ Impossible d'écrire l'état du pipeline : {e}")
+
 def archive_run(run_metadata):
     history = []
     if HISTORY_PATH.exists():
@@ -58,82 +78,125 @@ def archive_run(run_metadata):
             history = []
     
     history.append(run_metadata)
-    # Limiter à 50 exécutions historiques pour économiser de l'espace
+    # Limiter à 50 exécutions historiques
     history = history[-50:]
     
-    with open(HISTORY_PATH, "w") as f:
-        json.dump(history, f, indent=2)
+    try:
+        with open(HISTORY_PATH, "w") as f:
+            json.dump(history, f, indent=2)
+    except Exception as e:
+        print(f"⚠️ Impossible de sauvegarder l'historique des runs : {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Pipeline MLOps Ligue 1 DataLab")
     parser.add_argument("--skip-etl", action="store_true", help="Ignorer la phase d'extraction scraping/ETL")
     args = parser.parse_args()
 
+    # Création des sous-répertoires du registre de modèles
+    ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+    CHAMPION_DIR.mkdir(parents=True, exist_ok=True)
+
+    pipeline_start_time = datetime.now()
     print("\n" + "="*80)
-    print(f"🏁 LANCEMENT DU PIPELINE MLOPS - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"🏁 LANCEMENT DU PIPELINE MLOPS - {pipeline_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     print("="*80)
 
-    # 1. Scraping & Ingestion ETL (Optionnel)
+    # Initialisation de l'état
+    update_pipeline_state("RUNNING", "scraping")
+
+    # 1. Scraping & Ingestion ETL
     if not args.skip_etl:
         etl_script = PROJECT_ROOT / "scripts" / "run_etl.py"
         if etl_script.exists():
-            if not run_subprocess_script(etl_script, "Scraping & ETL Ingestion"):
-                print("⛔ Pipeline stoppé en raison d'un échec de l'ETL.")
-                sys.exit(1)
+            try:
+                if not run_subprocess_script(etl_script, "Scraping & ETL Ingestion"):
+                    print("⚠️ Échec de l'ETL, passage en mode dégradé (utilisation des données existantes)...")
+            except Exception as e:
+                print(f"⚠️ Erreur durant l'ETL : {e}. Poursuite en mode dégradé...")
         else:
             print("⚠️ Script run_etl.py introuvable, étape ignorée.")
     else:
         print("⏭️ Étape Scraping/ETL ignorée à la demande de l'utilisateur.")
 
     # 2. Calcul ELO Historique
+    update_pipeline_state("RUNNING", "elo")
     elo_script = PROJECT_ROOT / "ml" / "features" / "compute_elo.py"
     match_elos_file = PROJECT_ROOT / "ml" / "features" / "match_elos.csv"
     latest_elos_file = PROJECT_ROOT / "ml" / "features" / "latest_elos.json"
     
     if elo_script.exists():
-        if not run_subprocess_script(elo_script, "Calcul des Elos Historiques"):
+        try:
+            if not run_subprocess_script(elo_script, "Calcul des Elos Historiques"):
+                if match_elos_file.exists() and latest_elos_file.exists():
+                    print("\n⚠️ Connexion PostgreSQL impossible ou échec de calcul Elo.")
+                    print("👉 Mode offline activé : utilisation de match_elos.csv et latest_elos.json existants.")
+                else:
+                    print("⛔ Pipeline stoppé : fichiers Elo inexistants et base de données injoignable.")
+                    update_pipeline_state("FAILED", "elo")
+                    sys.exit(1)
+        except Exception as e:
+            print(f"⚠️ Exception lors du calcul Elo : {e}")
             if match_elos_file.exists() and latest_elos_file.exists():
-                print("\n⚠️  Connexion PostgreSQL impossible ou erreur de calcul Elo.")
-                print("👉 Mode offline activé : utilisation de match_elos.csv et latest_elos.json existants.")
+                print("👉 Mode offline activé.")
             else:
-                print("⛔ Pipeline stoppé : fichiers Elo inexistants et base de données injoignable.")
+                update_pipeline_state("FAILED", "elo")
                 sys.exit(1)
     else:
         print("❌ Script compute_elo.py introuvable !")
+        update_pipeline_state("FAILED", "elo")
         sys.exit(1)
 
     # 3. Features ML Dataset Creation
+    update_pipeline_state("RUNNING", "dataset")
     dataset_script = PROJECT_ROOT / "ml" / "features" / "create_ml_dataset.py"
     ml_dataset_file = PROJECT_ROOT / "ml" / "features" / "ml_dataset.csv"
     
     if dataset_script.exists():
-        if not run_subprocess_script(dataset_script, "Création du Dataset ML"):
+        try:
+            if not run_subprocess_script(dataset_script, "Création du Dataset ML"):
+                if ml_dataset_file.exists():
+                    print("\n⚠️ Connexion PostgreSQL impossible ou erreur de création du dataset.")
+                    print("👉 Mode offline activé : utilisation du ml_dataset.csv existant.")
+                else:
+                    print("⛔ Pipeline stoppé : dataset ML inexistant et base de données injoignable.")
+                    update_pipeline_state("FAILED", "dataset")
+                    sys.exit(1)
+        except Exception as e:
+            print(f"⚠️ Exception lors de la création du dataset : {e}")
             if ml_dataset_file.exists():
-                print("\n⚠️  Connexion PostgreSQL impossible ou erreur de création du dataset.")
-                print("👉 Mode offline activé : utilisation du ml_dataset.csv existant.")
+                print("👉 Mode offline activé.")
             else:
-                print("⛔ Pipeline stoppé : dataset ML inexistant et base de données injoignable.")
+                update_pipeline_state("FAILED", "dataset")
                 sys.exit(1)
     else:
         print("❌ Script create_ml_dataset.py introuvable !")
+        update_pipeline_state("FAILED", "dataset")
         sys.exit(1)
 
-    # 4. Audit Qualité des Données (Data Cleaning Post-Dataset)
+    # 4. Audit Qualité des Données (Optionnel/Non-bloquant)
     quality_script = PROJECT_ROOT / "scripts" / "validate_data_quality.py"
     if quality_script.exists():
-        # L'audit de qualité peut échouer si PostgreSQL est hors-ligne, on le traite comme non-bloquant en offline
-        if not run_subprocess_script(quality_script, "Audit Qualité des Données"):
-            print("\n⚠️  L'audit qualité a échoué (PostgreSQL probablement hors-ligne). Mode offline : poursuite du pipeline.")
+        try:
+            if not run_subprocess_script(quality_script, "Audit Qualité des Données"):
+                print("\n⚠️ L'audit qualité a échoué. Mode offline : poursuite du pipeline.")
+        except Exception as e:
+            print(f"⚠️ L'audit qualité a levé une exception : {e}. Poursuite...")
     else:
         print("⚠️ Script validate_data_quality.py introuvable, étape d'audit ignorée.")
 
-    # 5. Entraînement et Calibration Platt vs Isotonic des Challengers
+    # 5. Entraînement et Calibration des Challengers
+    update_pipeline_state("RUNNING", "training")
     print("\n🤖 Entraînement et Calibration des Challengers...")
     
-    # Entraîner avec Sigmoïde
-    results_sigmoid = train_and_evaluate(calibration_method="sigmoid")
-    # Entraîner avec Isotonic
-    results_isotonic = train_and_evaluate(calibration_method="isotonic")
+    try:
+        # Entraîner avec Sigmoïde
+        results_sigmoid = train_and_evaluate(calibration_method="sigmoid")
+        # Entraîner avec Isotonic
+        results_isotonic = train_and_evaluate(calibration_method="isotonic")
+    except Exception as e:
+        print(f"⛔ Échec critique de l'entraînement des challengers : {e}")
+        update_pipeline_state("FAILED", "training")
+        sys.exit(1)
     
     # Extraire les métriques
     rf_sig_brier = results_sigmoid["rf_metrics"]["brier_score"]
@@ -171,7 +234,6 @@ def main():
         champion_brier = 999.0
     else:
         chosen_prod = champion_meta.get("chosen_production_model", "RandomForestCalibrated")
-        # Trouver la métrique active du Champion
         active_model_details = champion_meta.get("models", {}).get(chosen_prod, {})
         champion_brier = active_model_details.get("metrics", {}).get("brier_score", 999.0)
         champion_acc = active_model_details.get("metrics", {}).get("accuracy", 0.0)
@@ -181,7 +243,7 @@ def main():
         # Comparaison : Le challenger doit être strictement supérieur (Brier Score plus bas)
         # Seuil minimal de gain de 0.2%
         gain = champion_brier - best_challenger["metrics"]["brier_score"]
-        if gain > 0.002: # gain significatif
+        if gain > 0.002:
             print(f"🔥 LE CHALLENGER EST SUPÉRIEUR ! Gain de Brier Score = {gain:.4f}")
             should_promote = True
         else:
@@ -191,7 +253,7 @@ def main():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     version_id = f"v_{timestamp}"
     
-    # Chemins de fichiers pour le nouveau run
+    # Chemins physiques dans le Registre de modèles
     model_filename = f"{best_challenger['file_prefix']}_{version_id}.joblib"
     encoder_filename = f"label_encoder_{version_id}.joblib"
     
@@ -209,11 +271,15 @@ def main():
     if should_promote:
         print(f"\n🏆 PROMOTION DU MODÈLE : {best_challenger['model_name']} ({version_id})")
         
-        # 1. Sauvegarde physique du modèle versionné
-        joblib.dump(best_challenger["model"], MODELS_DIR / model_filename)
-        joblib.dump(best_challenger["results"]["label_encoder"], MODELS_DIR / encoder_filename)
+        # 1. Sauvegarde dans le sous-dossier /archive
+        joblib.dump(best_challenger["model"], ARCHIVE_DIR / model_filename)
+        joblib.dump(best_challenger["results"]["label_encoder"], ARCHIVE_DIR / encoder_filename)
         
-        # 2. Sauvegarde des fichiers champions standards (pour compatibilité ascendante)
+        # 2. Copie vers le sous-dossier /champion (Fichier officiel de production unifiée)
+        joblib.dump(best_challenger["model"], CHAMPION_DIR / "champion_model.joblib")
+        joblib.dump(best_challenger["results"]["label_encoder"], CHAMPION_DIR / "champion_encoder.joblib")
+        
+        # 3. Écriture des fichiers champions standards à la racine ml/models/ pour rétrocompatibilité
         joblib.dump(best_challenger["model"], MODELS_DIR / f"{best_challenger['file_prefix']}_v1.joblib")
         joblib.dump(best_challenger["results"]["label_encoder"], MODELS_DIR / "label_encoder_v1.joblib")
         
@@ -221,18 +287,19 @@ def main():
             for c in best_challenger["results"]["label_encoder"].classes_:
                 f.write(f"{c}\n")
 
-        # 3. Mise à jour de metadata.json
+        # 4. Mise à jour de metadata.json
         new_metadata = best_challenger["results"]["metadata"]
         new_metadata["chosen_production_model"] = best_challenger["model_name"]
-        new_metadata["active_model_file"] = model_filename
-        new_metadata["active_encoder_file"] = encoder_filename
+        new_metadata["active_model_file"] = f"archive/{model_filename}"
+        new_metadata["active_encoder_file"] = f"archive/{encoder_filename}"
+        new_metadata["champion_model_file"] = "champion/champion_model.joblib"
+        new_metadata["champion_encoder_file"] = "champion/champion_encoder.joblib"
         new_metadata["active_version"] = version_id
         
-        # Structurer les modèles
         new_metadata["models"] = {
             best_challenger["model_name"]: {
                 "version": version_id,
-                "file": model_filename,
+                "file": f"archive/{model_filename}",
                 "metrics": best_challenger["metrics"]
             }
         }
@@ -240,16 +307,24 @@ def main():
         with open(METADATA_PATH, "w") as f:
             json.dump(new_metadata, f, indent=2)
             
-        print(f"📢 Modèle champion déployé à chaud : {model_filename}")
+        print(f"📢 Modèle champion déployé à chaud dans le registre : champion_model.joblib ({version_id})")
     else:
         print("\n🔒 Maintien du modèle Champion en production.")
 
     # 8. Archivage dans l'historique
     archive_run(run_info)
     
+    duration = int((datetime.now() - pipeline_start_time).total_seconds())
+    update_pipeline_state("SUCCESS", "completed", duration)
+
     print("\n" + "="*80)
-    print(f"🎉 PIPELINE TERMINÉ AVEC SUCCÈS - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"🎉 PIPELINE TERMINÉ AVEC SUCCÈS - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (Durée : {duration}s)")
     print("="*80 + "\n")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"\n❌ ERREUR CRITIQUE DANS LE PIPELINE : {e}")
+        update_pipeline_state("FAILED", "failed")
+        sys.exit(1)

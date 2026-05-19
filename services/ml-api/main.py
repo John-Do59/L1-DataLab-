@@ -31,20 +31,37 @@ app.add_middleware(
 # --- PATH RESOLUTION ---
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MODELS_DIR = PROJECT_ROOT / "ml" / "models"
-PIPELINE_STATUS_PATH = MODELS_DIR / "pipeline_status.json"
+CHAMPION_DIR = MODELS_DIR / "champion"
+STATE_PATH = MODELS_DIR / "pipeline_state.json"
+HISTORY_PATH = MODELS_DIR / "runs_history.json"
 
-def get_model_path(filename: str):
-    # Docker path
-    docker_path = Path("/app/ml/models") / filename
-    if docker_path.exists():
-        return docker_path
-    
-    # Local path (PROJECT_ROOT based)
-    local_path = MODELS_DIR / filename
-    if local_path.exists():
-        return local_path
-        
-    return Path("ml/models") / filename
+def get_champion_paths():
+    """
+    Retourne les chemins officiels du modèle champion et de son encoder.
+    Bascule sur la racine de ml/models en cas d'absence.
+    """
+    # Chemin conteneurisé Docker
+    docker_champion_model = Path("/app/ml/models/champion/champion_model.joblib")
+    docker_champion_encoder = Path("/app/ml/models/champion/champion_encoder.joblib")
+    if docker_champion_model.exists() and docker_champion_encoder.exists():
+        return docker_champion_model, docker_champion_encoder
+
+    # Chemin local
+    local_champion_model = CHAMPION_DIR / "champion_model.joblib"
+    local_champion_encoder = CHAMPION_DIR / "champion_encoder.joblib"
+    if local_champion_model.exists() and local_champion_encoder.exists():
+        return local_champion_model, local_champion_encoder
+
+    # Repli racine
+    fallback_model = MODELS_DIR / "rf_v1.joblib"
+    fallback_encoder = MODELS_DIR / "label_encoder_v1.joblib"
+    return fallback_model, fallback_encoder
+
+def get_metadata_path():
+    docker_meta = Path("/app/ml/models/metadata.json")
+    if docker_meta.exists():
+        return docker_meta
+    return MODELS_DIR / "metadata.json"
 
 # --- PROMETHEUS METRICS ---
 PREDICTIONS_COUNTER = Counter(
@@ -78,19 +95,15 @@ PIPELINE_STATUS_GAUGE = Gauge(
     "Statut du dernier run de pipeline (1 = Succès, 0 = Échec)"
 )
 
-# --- ROLLING CONFIDENCE CACHE FOR DRIFT DETECTION ---
-# Conserve les confiances des 50 dernières requêtes
+# --- ROLLING CONFIDENCE CACHE FOR LIGHTWEIGHT DRIFT INDICATOR ---
 predictions_confidence_cache = []
 
 def calculate_drift_status() -> int:
     """
-    Calcule le statut du Concept Drift en fonction de la dérive de confiance glissante.
-    Si la confiance moyenne glissante chute sous 42% sur les 20 derniers matchs, suspecté.
-    Si elle chute sous 38%, critique.
+    Calcule le statut du Concept Drift basé sur la confiance glissante moyenne.
     """
     if len(predictions_confidence_cache) < 15:
-        return 0 # Pas assez de recul
-    
+        return 0
     recent_confidence = predictions_confidence_cache[-20:]
     avg_conf = np.mean(recent_confidence)
     
@@ -109,10 +122,9 @@ class DynamicModelManager:
         self.model_version = "v1"
         self.calibration_method = "sigmoid"
         self.last_mtime = 0
-        self.metadata_path = MODELS_DIR / "metadata.json"
         
     def get_model(self):
-        metadata_file = get_model_path("metadata.json")
+        metadata_file = get_metadata_path()
         if metadata_file.exists():
             try:
                 mtime = os.path.getmtime(metadata_file)
@@ -124,21 +136,19 @@ class DynamicModelManager:
                     chosen_model = meta.get("chosen_production_model", "RandomForestCalibrated")
                     model_info = meta.get("models", {}).get(chosen_model, {})
                     
-                    active_file = meta.get("active_model_file", "rf_v1.joblib")
-                    model_path = get_model_path(active_file)
-                    classes_path = get_model_path("classes.txt")
+                    active_model_path, active_encoder_path = get_champion_paths()
                     
-                    # Chargement en mémoire
-                    self.model = joblib.load(str(model_path))
-                    with open(classes_path, "r") as f:
-                        self.classes = [line.strip() for line in f.readlines()]
+                    # Chargement sécurisé en mémoire
+                    self.model = joblib.load(str(active_model_path))
+                    label_encoder = joblib.load(str(active_encoder_path))
+                    self.classes = list(label_encoder.classes_)
                         
                     self.model_name = chosen_model
                     self.model_version = model_info.get("version", "v1")
                     self.calibration_method = meta.get("calibration_method", "sigmoid")
                     self.last_mtime = mtime
                     
-                    print(f"✅ Modèle Champion chargé : {self.model_name} ({self.model_version}) avec calibration {self.calibration_method}")
+                    print(f"✅ Modèle Champion rechargé à chaud : {self.model_name} ({self.model_version})")
             except Exception as e:
                 print(f"⚠️ Erreur lors du rechargement dynamique : {e}")
                 if self.model is None:
@@ -151,53 +161,25 @@ class DynamicModelManager:
 
     def load_static_fallback(self):
         try:
-            model_path = get_model_path("rf_v1.joblib")
-            classes_path = get_model_path("classes.txt")
-            if model_path.exists():
-                self.model = joblib.load(str(model_path))
-                with open(classes_path, "r") as f:
-                    self.classes = [line.strip() for line in f.readlines()]
+            active_model_path, active_encoder_path = get_champion_paths()
+            if active_model_path.exists() and active_encoder_path.exists():
+                self.model = joblib.load(str(active_model_path))
+                label_encoder = joblib.load(str(active_encoder_path))
+                self.classes = list(label_encoder.classes_)
                 self.model_name = "RandomForestCalibrated"
                 self.model_version = "v1"
                 self.calibration_method = "sigmoid"
-                print(f"🌲 Modèle standard de secours chargé : {model_path}")
+                print(f"🌲 Modèle standard de secours chargé : {active_model_path}")
         except Exception as e:
             print(f"❌ Échec du chargement du modèle secours : {e}")
 
 model_manager = DynamicModelManager()
 
-# --- PIPELINE / SCHEDULER MANAGEMENT ---
-class PipelineManager:
-    @staticmethod
-    def get_status():
-        if PIPELINE_STATUS_PATH.exists():
-            try:
-                with open(PIPELINE_STATUS_PATH, "r") as f:
-                    return json.load(f)
-            except Exception:
-                pass
-        return {"status": "idle", "timestamp": None, "logs": "Aucune exécution enregistrée."}
-        
-    @staticmethod
-    def write_status(status: str, logs: str):
-        try:
-            MODELS_DIR.mkdir(parents=True, exist_ok=True)
-            with open(PIPELINE_STATUS_PATH, "w") as f:
-                json.dump({
-                    "status": status,
-                    "timestamp": datetime.now().isoformat(),
-                    "logs": logs
-                }, f, indent=2)
-        except Exception as e:
-            print(f"Erreur d'écriture statut pipeline : {e}")
-
+# --- PIPELINE COORDINATOR ---
 def run_pipeline_background_task():
-    PipelineManager.write_status("running", "🚀 Démarrage du pipeline de réentraînement continu...\n")
-    
     # Résolution de l'exécutable python (local .venv vs global)
     venv_python = PROJECT_ROOT / ".venv" / "bin" / "python"
     python_bin = str(venv_python) if venv_python.exists() else sys.executable
-    
     pipeline_script = PROJECT_ROOT / "ml" / "pipeline.py"
     
     try:
@@ -209,25 +191,16 @@ def run_pipeline_background_task():
             cwd=str(PROJECT_ROOT)
         )
         
-        logs = ""
-        for line in process.stdout:
-            logs += line
-            # Limiter à 150 lignes pour ne pas surcharger la mémoire
-            log_lines = logs.split("\n")
-            if len(log_lines) > 150:
-                logs = "\n".join(log_lines[-150:])
-            PipelineManager.write_status("running", logs)
-            
+        # Le script pipeline.py gère lui-même le pipeline_state.json de manière robuste,
+        # on se contente d'attendre et d'actualiser la jauge Prometheus à la fin.
         process.wait()
         
         if process.returncode == 0:
-            PipelineManager.write_status("success", logs + "\n🎉 Pipeline MLOps exécuté et validé avec succès !")
             PIPELINE_STATUS_GAUGE.set(1)
         else:
-            PipelineManager.write_status("failed", logs + f"\n❌ Échec du pipeline. Code de retour : {process.returncode}")
             PIPELINE_STATUS_GAUGE.set(0)
     except Exception as e:
-        PipelineManager.write_status("failed", f"❌ Exception fatale pendant l'exécution : {str(e)}")
+        print(f"❌ Exception fatale pendant l'exécution asynchrone : {e}")
         PIPELINE_STATUS_GAUGE.set(0)
 
 # --- APIS SCHEDULER JOB ---
@@ -239,7 +212,6 @@ def scheduled_job():
 
 @app.on_event("startup")
 def startup_event():
-    # Déclenchement tous les lundis à 4:00 AM
     scheduler.add_job(scheduled_job, "cron", day_of_week="mon", hour=4, minute=0)
     scheduler.start()
     print("⏰ APScheduler démarré (Fréquence : Tous les lundis à 4h00)")
@@ -267,9 +239,8 @@ class MatchFeatures(BaseModel):
 def read_root():
     model, classes, model_name, model_version = model_manager.get_model()
     
-    # Charger métadonnées pour statistiques en direct
     active_metrics = {}
-    metadata_file = get_model_path("metadata.json")
+    metadata_file = get_metadata_path()
     if metadata_file.exists():
         try:
             with open(metadata_file, "r") as f:
@@ -305,36 +276,148 @@ def predict(features: MatchFeatures):
     predicted_class = classes[probs.argmax()]
     max_prob = float(probs.max())
     
-    # Mise à jour des métriques Prometheus de production
+    # Mise à jour des métriques Prometheus
     PREDICTIONS_COUNTER.labels(outcome=predicted_class, model_version=model_version).inc()
     CONFIDENCE_HISTOGRAM.observe(max_prob)
     
-    # Enregistrer la confiance pour le concept drift glissant
+    # Enregistrer la confiance pour le concept drift
     predictions_confidence_cache.append(max_prob)
     if len(predictions_confidence_cache) > 100:
         predictions_confidence_cache.pop(0)
+
+    # --- SHAP LOCAL PROXY CALCULATOR (EXPLICABILITÉ) ---
+    baselines = {
+        "elo_diff": 0.0,
+        "home_form_5": 1.3,
+        "away_form_5": 1.3,
+        "home_squad_value": 120.0,
+        "away_squad_value": 120.0,
+        "home_avg_overall": 74.0,
+        "away_avg_overall": 74.0,
+        "odds_prob_home": 0.44,
+        "odds_prob_away": 0.32
+    }
+    stds = {
+        "elo_diff": 150.0,
+        "home_form_5": 0.5,
+        "away_form_5": 0.5,
+        "home_squad_value": 80.0,
+        "away_squad_value": 80.0,
+        "home_avg_overall": 4.0,
+        "away_avg_overall": 4.0,
+        "odds_prob_home": 0.15,
+        "odds_prob_away": 0.12
+    }
+    global_importances = {
+        "elo_diff": 0.285,
+        "odds_prob_home": 0.198,
+        "home_form_5": 0.124,
+        "odds_prob_away": 0.105,
+        "away_form_5": 0.092,
+        "home_squad_value": 0.081,
+        "away_squad_value": 0.065,
+        "home_avg_overall": 0.050,
+        "away_avg_overall": 0.045
+    }
+    feature_labels = {
+        "elo_diff": "Différence Elo",
+        "odds_prob_home": "Cotes Domicile",
+        "odds_prob_away": "Cotes Extérieur",
+        "home_form_5": "Forme Domicile",
+        "away_form_5": "Forme Extérieur",
+        "home_squad_value": "Valeur Effectif Dom.",
+        "away_squad_value": "Valeur Effectif Ext.",
+        "home_avg_overall": "Note FIFA Domicile",
+        "away_avg_overall": "Note FIFA Extérieur"
+    }
+
+    contributions = []
+    for feat_name, baseline in baselines.items():
+        feat_val = getattr(features, feat_name, None)
+        if feat_val is not None:
+            std = stds[feat_name]
+            importance = global_importances[feat_name]
+            z_score = (feat_val - baseline) / std
+            impact = z_score * importance * 15.0
+            
+            if predicted_class == "H":
+                if feat_name in ["elo_diff", "home_form_5", "home_squad_value", "home_avg_overall", "odds_prob_home"]:
+                    direction = "positive" if z_score >= 0 else "negative"
+                else:
+                    direction = "negative" if z_score >= 0 else "positive"
+            elif predicted_class == "A":
+                if feat_name in ["away_form_5", "away_squad_value", "away_avg_overall", "odds_prob_away"]:
+                    direction = "positive" if z_score >= 0 else "negative"
+                else:
+                    direction = "negative" if z_score >= 0 else "positive"
+            else:  # Match Nul "D"
+                direction = "positive" if abs(z_score) < 0.8 else "negative"
+                impact = (1.0 - min(2.0, abs(z_score))) * importance * 10.0
+                
+            abs_impact = abs(impact)
+            if abs_impact > 0.3:
+                contributions.append({
+                    "label": feature_labels[feat_name],
+                    "impact": round(abs_impact, 1),
+                    "direction": direction
+                })
+
+    contributions = sorted(contributions, key=lambda x: x["impact"], reverse=True)[:3]
+    explainability = {}
+    for i, c in enumerate(contributions):
+        prefix = "+" if c["direction"] == "positive" else "-"
+        explainability[f"Facteur {i+1}"] = f"{prefix} {c['label']} ({prefix}{c['impact']}%)"
         
     return {
         "prediction": predicted_class,
         "probabilities": result,
         "model": model_name,
         "version": model_version,
-        "confidence": max_prob
+        "confidence": max_prob,
+        "explainability": explainability
     }
 
 @app.post("/pipeline/run")
 def trigger_pipeline(background_tasks: BackgroundTasks):
-    status_info = PipelineManager.get_status()
-    if status_info["status"] == "running":
-        return {"status": "already_running", "message": "Le pipeline MLOps s'exécute déjà en arrière-plan."}
+    state_file = STATE_PATH
+    if state_file.exists():
+        try:
+            with open(state_file, "r") as f:
+                state = json.load(f)
+                if state.get("status") == "RUNNING":
+                    return {"status": "already_running", "message": "Le pipeline MLOps s'exécute déjà en arrière-plan."}
+        except Exception:
+            pass
         
-    # Lancement asynchrone
     background_tasks.add_task(run_pipeline_background_task)
     return {"status": "triggered", "message": "Le pipeline MLOps a été lancé en tâche de fond."}
 
-@app.get("/pipeline/status")
-def get_pipeline_status():
-    return PipelineManager.get_status()
+@app.get("/pipeline/state")
+def get_pipeline_state():
+    state_file = STATE_PATH
+    if state_file.exists():
+        try:
+            with open(state_file, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "last_run": None,
+        "status": "idle",
+        "duration_seconds": 0,
+        "current_step": "idle"
+    }
+
+@app.get("/pipeline/history")
+def get_pipeline_history():
+    history_file = HISTORY_PATH
+    if history_file.exists():
+        try:
+            with open(history_file, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
 
 @app.get("/health")
 def health():
@@ -346,10 +429,8 @@ def health():
 
 @app.get("/metrics")
 def get_metrics():
-    # Mettre à jour les jauges dynamiques avant l'export
     model, _, model_name, model_version = model_manager.get_model()
-    
-    metadata_file = get_model_path("metadata.json")
+    metadata_file = get_metadata_path()
     if metadata_file.exists():
         try:
             with open(metadata_file, "r") as f:
@@ -363,7 +444,16 @@ def get_metrics():
         except Exception:
             pass
             
-    # Calcul drift glissant
     DRIFT_GAUGE.set(calculate_drift_status())
     
+    state_file = STATE_PATH
+    if state_file.exists():
+        try:
+            with open(state_file, "r") as f:
+                state = json.load(f)
+                status_val = 1 if state.get("status") == "SUCCESS" else 0
+                PIPELINE_STATUS_GAUGE.set(status_val)
+        except Exception:
+            pass
+            
     return PlainTextResponse(generate_latest(), headers={"Content-Type": CONTENT_TYPE_LATEST})

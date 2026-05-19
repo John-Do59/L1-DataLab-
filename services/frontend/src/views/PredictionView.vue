@@ -193,9 +193,11 @@
       <div class="w-[300px] h-[140px] bg-[#060b19]/80 border border-white/10 rounded-2xl p-5 backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.5)]">
         <h4 class="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-3">Facteurs Clés</h4>
         <ul class="space-y-2">
-          <li v-for="(val, key) in (result.explainability || mockFactors)" :key="key" class="flex items-center gap-2 text-[11px] text-white/80">
-            <span class="text-cyan-400">⬢</span>
-            {{ val }}
+          <li v-for="(val, key) in (result.explainability || mockFactors)" :key="key" class="flex items-center gap-2 text-[11px] text-white/90">
+            <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="val.toString().trim().startsWith('+') ? 'bg-cyan-400 shadow-[0_0_6px_#22d3ee]' : (val.toString().trim().startsWith('-') ? 'bg-purple-500 shadow-[0_0_6px_#a855f7]' : 'bg-slate-400')"></span>
+            <span class="truncate" :class="val.toString().trim().startsWith('+') ? 'text-cyan-200 font-medium' : (val.toString().trim().startsWith('-') ? 'text-purple-300 font-medium' : 'text-white/80')">
+              {{ val }}
+            </span>
           </li>
         </ul>
       </div>
