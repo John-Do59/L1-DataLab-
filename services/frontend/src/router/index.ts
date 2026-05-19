@@ -41,6 +41,12 @@ const router = createRouter({
       name: 'ai-insights',
       component: () => import('../views/AIInsightsView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/history',
+      name: 'history',
+      component: () => import('../views/HistoryView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })
