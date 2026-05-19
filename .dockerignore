@@ -16,6 +16,3 @@ __pycache__/
 .DS_Store
 .git/
 .vscode/
-
-# Exclure les scripts d'ETL (non nécessaires à l'API)
-scripts/
