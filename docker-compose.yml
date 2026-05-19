@@ -49,6 +49,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-ml:5432/l1_ml
     ports:
       - "8001:8000"
+    volumes:
+      - ./ml/models:/app/ml/models
 
   app-api:
     build: 

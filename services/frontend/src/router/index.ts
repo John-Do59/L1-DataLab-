@@ -35,6 +35,12 @@ const router = createRouter({
       name: 'prediction',
       component: PredictionView,
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/ai-insights',
+      name: 'ai-insights',
+      component: () => import('../views/AIInsightsView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })

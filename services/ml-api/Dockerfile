@@ -10,10 +10,12 @@ RUN apt-get update && apt-get install -y \
 COPY requirements-api.txt .
 RUN pip install --no-cache-dir -r requirements-api.txt
 
-# Structure plate
-COPY services/ml-api/ .
-COPY ml/models/ ml/models/
+# Copy all necessary workspace modules for ML pipeline orchestration
+COPY ml/ /app/ml/
+COPY scripts/ /app/scripts/
+COPY services/ml-api/ /app/services/ml-api/
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run from project root to ensure clean package import resolution
+CMD ["uvicorn", "services.ml-api.main:app", "--host", "0.0.0.0", "--port", "8000"]
