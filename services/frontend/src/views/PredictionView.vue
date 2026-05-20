@@ -1,6 +1,6 @@
 <template>
   <div class="fixed inset-0 z-[-1] pointer-events-none bg-[#050510]">
-    <img src="../assets/backgrounds/bg_stadium_1.jpg" alt="Stadium" class="w-full h-full object-cover opacity-80" />
+    <img src="../assets/backgrounds/bg_stadium_3.jpg" alt="Stadium" class="w-full h-full object-cover opacity-80" />
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050510]/40 to-[#050510]"></div>
   </div>
 

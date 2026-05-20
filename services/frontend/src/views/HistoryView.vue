@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import api from '../api/axios'
 import ProbabilityBar from '../components/dashboard/ProbabilityBar.vue'
 import { useAuthStore } from '../stores/auth'
-import bgStadium2 from '../assets/backgrounds/bg_stadium_2.jpg'
+import bgStadium2 from '../assets/backgrounds/pngtree-vibrant-neon-stadium-with-crowd-and-sports-field-at-night-image_21063300.webp'
 
 const authStore = useAuthStore()
 const router = useRouter()

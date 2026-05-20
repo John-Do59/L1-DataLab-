@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
-import bgStadium1 from '../assets/backgrounds/bg_stadium_1.jpg'
+import bgStadium1 from '../assets/backgrounds/sport-science-insights-banner.png'
 
 const getMlApiUrl = () => {
   const host = window.location.hostname || 'localhost'
