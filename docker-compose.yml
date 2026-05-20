@@ -1,0 +1,114 @@
+
+services:
+  # --- DATABASES ---
+  db-ml:
+    image: postgres:15
+    container_name: l1-db-ml
+    environment:
+      POSTGRES_DB: l1_ml
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5433:5432" # Port décalé pour éviter les conflits locaux
+    volumes:
+      - postgres_ml_data:/var/lib/postgresql/data
+      - ./db/init_ml.sql:/docker-entrypoint-initdb.d/init.sql
+
+  db-app:
+    image: postgres:15
+    container_name: l1-db-app
+    environment:
+      POSTGRES_DB: l1_app
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_app_data:/var/lib/postgresql/data
+      - ./db/init_app.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # --- CACHE ---
+  redis:
+    image: redis:7-alpine
+    container_name: l1-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # --- APIS ---
+  ml-api:
+    build: 
+      context: .
+      dockerfile: services/ml-api/Dockerfile
+    container_name: l1-ml-api
+    depends_on:
+      - db-ml
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-ml:5432/l1_ml
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./ml/models:/app/ml/models
+
+  app-api:
+    build: 
+      context: .
+      dockerfile: services/app-api/Dockerfile
+    container_name: l1-app-api
+    depends_on:
+      - db-app
+      - ml-api
+      - redis
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-app:5432/l1_app
+      ML_API_URL: http://ml-api:8000
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8002:8000"
+
+  # --- FRONTEND ---
+  frontend:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    container_name: l1-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - app-api
+    environment:
+      - VITE_API_URL=http://localhost:8002
+
+  # --- MONITORING ---
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: l1-prometheus
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - "9090:9090"
+    depends_on:
+      - ml-api
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: l1-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_ml_data:
+  postgres_app_data:
+  redis_data:
+  grafana_data:

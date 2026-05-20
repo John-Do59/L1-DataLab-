@@ -1,61 +1,65 @@
-# L1 DataLab ⚽
+# ⚽ Ligue 1 DataLab - Predictive Analytics
 
-L1 DataLab est une plateforme d’analyse et de prédiction pour le championnat de France de football (Ligue 1). Conçue comme un produit **production‑ready**, elle intègre des pipelines de données, du machine learning, des APIs modernes, un assistant IA local (RAG) et une stack d'observabilité complète.
+[![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791.svg)](https://www.postgresql.org/)
+[![XGBoost](https://img.shields.io/badge/ML-XGBoost-orange.svg)](https://xgboost.readthedocs.io/)
 
-## 🚀 Vision du Projet
+Plateforme industrielle de collecte et de prédiction des résultats de la Ligue 1 McDonald’s. Ce projet combine **Web Scraping**, **Ingénierie de données SQL** et **Machine Learning** pour prédire l'issue des matchs de football.
 
-L'objectif est de fournir aux analystes et aux passionnés des outils avancés pour :
-- **Prédire** l'issue des matchs à partir de données historiques.
-- **Visualiser** les statistiques clés via un dashboard interactif.
-- **Explorer** les données grâce à un assistant IA local basé sur le RAG (Retrieval-Augmented Generation).
-- **Monitorer** la santé du système en temps réel (Traces, Métriques, Logs).
+## 🌟 Points Forts
+- **Pipeline ETL Automatisé** : Ingestion multi-sources (API Ligue 1, Kaggle, Transfermarkt).
+- **Intelligence Artificielle** : Modèle XGBoost optimisé intégrant un système d'**Elo Rating** dynamique.
+- **Scraping Live** : Récupération en temps réel des matchs de la saison 2025/2026.
+- **Analyse Scientifique** : Évaluation rigoureuse des biais et des limites prédictives.
 
-## 🏗️ Architecture Technique
+## 🏗️ Infrastructure
+- **Scraping** : Scrapy (Ligue 1 API).
+- **Base de données** : PostgreSQL (Architecture Micro-DBs).
+- **ML** : XGBoost Optimisé + Elo Rating System.
+- **Infrastructure** : Docker Compose (Microservices).
+- **Backend** : FastAPI + SQLAlchemy 2.0 Async + Pydantic v2.
 
-Le projet suit une architecture multi-services conteneurisée :
+## 📚 Documentation Technique
 
-- **Frontend** : Vue.js (L1 DataLab Studio)
-- **Backend APIs** : FastAPI (App API & ML API)
-- **Data & ML** : Scrapy, Scikit-learn, PostgreSQL (pgvector)
-- **IA Locale** : Ollama (Qwen) + LangChain
-- **Observabilité** : OpenTelemetry, Prometheus, Grafana, Loki, Alertmanager
+Pour approfondir le fonctionnement du système, consultez nos guides détaillés :
+- 🗄️ [SQLAlchemy 2.0 Async](docs/SQLALCHEMY.md) : Gestion de la base de données asynchrone.
+- ✅ [Pydantic V2](docs/PYDANTIC.md) : Validation et typage des données.
+- ⚙️ [Alembic](docs/ALEMBIC.md) : Gestion des migrations et du schéma.
+- 🧪 [Guide de Test](docs/TESTS.md) : Commandes pour valider le système distribué.
+- 🐳 [Docker Guide](DOCKER.md) : Orchestration et optimisation des images.
 
-Pour plus de détails, consultez :
-- 📄 [brief.md](./brief.md) : Vision et objectifs business.
-- 📄 [architecture.md](./architecture.md) : Structure technique et organisation des dossiers.
-- 📄 [requirements-txt.md](./requirements-txt.md) : Gestion des dépendances.
+## 🚀 Installation & Lancement (Production)
 
-## 🛠️ Installation
+Pour lancer l'ensemble de la plateforme (APIs + Bases de données) :
 
-1. **Cloner le projet** :
-   ```bash
-   git clone https://github.com/John-Do59/L1-DataLab-.git
-   cd L1-DataLab-
-   ```
+```bash
+docker compose up -d
+```
 
-2. **Créer l'environnement virtuel** :
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
+Les services seront disponibles sur :
+- **App API** : [http://localhost:8002](http://localhost:8002)
+- **ML API** : [http://localhost:8001](http://localhost:8001)
+- **Frontend** : [http://localhost:5173](http://localhost:5173)
 
-3. **Installer les dépendances** :
-   ```bash
-   pip install -r requirements.txt -r requirements-ml.txt -r requirements-dev.txt -r requirements-monitoring.txt
-   ```
+Pour plus de détails, consultez [DOCKER.md](./DOCKER.md) et [ML_PIPELINE.md](./ML_PIPELINE.md).
 
-4. **Configurer l'environnement** :
-   ```bash
-   cp .env.example .env
-   ```
+## 📂 Structure du Projet
+- `db/` : Schémas SQL et scripts d'initialisation PostgreSQL.
+- `app-api/` : API principale FastAPI (Authentification JWT, Utilisateurs, Historique)
+- `frontend/` : Interface Vue.js 3 "Sunset Mystique" (GSAP, Tailwind v4, Liquidglass)
+- `scraper/` : Extraction Scrapy pour extraire les données de Ligue1.com.
+- `scripts/` : Pipeline d'ETL et outils de maintenance.
+- `ml/` : 
+    - `features/` : Scripts de calcul d'Elo et de feature engineering.
+    - `notebooks/` : Suite complète d'analyse et de modélisation (01 à 06).
+    - `training/` : Scripts d'entraînement et d'inférence live.
 
-## 📊 Observabilité
+## 🚀 Démarrage Rapide
+Pour comprendre et exécuter le pipeline de Machine Learning, consultez le guide dédié :
+👉 **[Guide du Machine Learning (ML_PIPELINE.md)](./ML_PIPELINE.md)**
 
-La plateforme est entièrement instrumentée avec OpenTelemetry. Vous pouvez accéder aux dashboards de monitoring une fois la stack lancée via Docker Compose :
-- **Grafana** : Visualisation des métriques et logs.
-- **Prometheus** : Collecte des métriques.
-- **Loki** : Centralisation des logs.
+## 📊 Résultats
+Le modèle final atteint une **Accuracy de 48.04%** sur la saison en cours, avec une excellente capacité de détection des victoires à domicile (**81% de recall**).
 
-## 🤝 Contribution
-
-Ce projet a été structuré pour répondre aux exigences pédagogiques du RNCP, avec une séparation stricte des responsabilités et une documentation complète.
+---
+*Projet réalisé pour la validation du titre RNCP.*

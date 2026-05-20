@@ -1,0 +1,49 @@
+# ============================================================
+# .dockerignore - Frontend Vue.js
+# Objectif : réduire le contexte de build (était 192 MB → ~5 MB)
+# ============================================================
+
+# Dépendances Node (reconstruites par npm ci dans le Dockerfile)
+node_modules/
+
+# Artifacts de build précédents (inutiles, re-générés par npm run build)
+dist/
+
+# Contrôle de version
+.git/
+.gitignore
+.gitattributes
+
+# Éditeurs & IDE
+.vscode/
+.editorconfig
+.prettierrc.json
+.oxlintrc.json
+eslint.config.ts
+
+# Fichiers système macOS
+.DS_Store
+**/.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Variables d'environnement locales (ne jamais inclure dans l'image)
+.env
+.env.*
+!.env.example
+
+# Tests & couverture
+coverage/
+*.spec.ts
+*.test.ts
+
+# Documentation
+README.md
+CHANGELOG.md
+
+# TypeScript configs (pas nécessaires à l'exécution)
+tsconfig*.json

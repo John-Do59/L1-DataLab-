@@ -1,0 +1,18 @@
+# Exclure les données lourdes
+data/
+ml/notebooks/
+ml/analysis/
+ml/features/*.csv
+ml/features/match_elos.csv
+
+# Exclure l'environnement local
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Exclure les logs et temp
+*.log
+.DS_Store
+.git/
+.vscode/
