@@ -66,13 +66,17 @@ onMounted(() => {
     
     // SCÈNE 1 : HERO & CONSTELLATION
     // État initial : les logos sont invisibles, au centre, mais éparpillés très très loin en profondeur (Starfield effect)
-    gsap.set('.constellation-logo-wrapper', { 
-      opacity: 0, 
-      scale: 0.1,
-      x: () => (Math.random() - 0.5) * window.innerWidth * 1.5,
-      y: () => (Math.random() - 0.5) * window.innerHeight * 1.5,
-      z: () => -1000 - Math.random() * 2000,
-      rotationZ: () => (Math.random() - 0.5) * 180
+    const wrappers = gsap.utils.toArray('.constellation-logo-wrapper') as HTMLElement[]
+    
+    wrappers.forEach((el) => {
+      gsap.set(el, { 
+        opacity: 0, 
+        scale: 0.1,
+        x: () => (Math.random() - 0.5) * window.innerWidth * 1.5,
+        y: () => (Math.random() - 0.5) * window.innerHeight * 1.5,
+        z: () => -1000 - Math.random() * 2000,
+        rotationZ: () => (Math.random() - 0.5) * 180
+      })
     })
 
     const tl = gsap.timeline({
@@ -88,44 +92,54 @@ onMounted(() => {
     // Le titre recule et s'efface
     tl.to('.hero-content', { opacity: 0, scale: 0.5, z: -1000, duration: 1 })
       
-      // Les logos foncent vers la caméra (l'inverse du titre)
-      .to('.constellation-logo-wrapper', {
-        opacity: () => 0.6 + Math.random() * 0.4,
+    // Animation individuelle de chaque logo pour éviter les conflits d'opacité en stagger
+    const logoDuration = 4
+    const logoStagger = 0.05
+    
+    wrappers.forEach((el, index) => {
+      const startTime = index * logoStagger
+      
+      // Mouvement et échelle (foncent vers la caméra)
+      tl.to(el, {
+        z: 1800, // Dépassent la caméra
         scale: () => 1.5 + Math.random() * 2,
-        z: () => 500 + Math.random() * 1000, // Ils dépassent la caméra
-        duration: 4, // Longue traversée
-        stagger: {
-          each: 0.05,
-          from: "random" // Flux ininterrompu
-        },
+        duration: logoDuration,
         ease: 'none'
-      }, "<")
+      }, startTime)
       
-      // Ils disparaissent juste avant ou au moment de toucher l'écran (disparition individuelle)
-      .to('.constellation-logo-wrapper', {
+      // Apparition progressive au début du voyage
+      tl.to(el, {
+        opacity: () => 0.6 + Math.random() * 0.4,
+        duration: logoDuration * 0.2, // 20% du trajet
+        ease: 'none'
+      }, startTime)
+      
+      // Disparition progressive avant de toucher / dépasser l'écran
+      tl.to(el, {
         opacity: 0,
-        duration: 0.5,
-        stagger: {
-          each: 0.05,
-          from: "random"
-        }
-      }, "-=3")
-      
-      // Le Dashboard émerge du vide à la fin
-      .to('.dashboard-preview', {
-        y: 0,
-        opacity: 1,
-        rotateX: 0,
-        scale: 1,
-        duration: 2,
-        ease: 'power3.out'
-      }, "-=1.5")
-      
-      // SÉCURITÉ : on fait disparaître tout le conteneur des logos pour être sûr qu'aucun ne reste collé
-      .to('.constellation-container', {
-        opacity: 0,
-        duration: 1
-      }, "<")
+        duration: logoDuration * 0.2, // 20% du trajet
+        ease: 'none'
+      }, startTime + logoDuration * 0.8) // Derniers 20% du trajet
+    })
+
+    const totalLogoTimelineDuration = (wrappers.length - 1) * logoStagger + logoDuration
+    
+    // Le Dashboard émerge du vide à la fin
+    tl.to('.dashboard-preview', {
+      y: 0,
+      opacity: 1,
+      rotateX: 0,
+      scale: 1,
+      duration: 2,
+      ease: 'power3.out'
+    }, totalLogoTimelineDuration - 1.5)
+    
+    // SÉCURITÉ : on fait disparaître tout le conteneur des logos pour être sûr qu'aucun ne reste collé
+    tl.to('.constellation-container', {
+      opacity: 0,
+      duration: 1,
+      ease: 'power2.out'
+    }, totalLogoTimelineDuration - 1.5)
 
 
     // SCÈNE 2 : PANELS HORIZONTAUX (Scroll Gallery)
