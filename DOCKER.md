@@ -60,3 +60,45 @@ Voici l'inventaire des accès réseaux de la stack :
 
 * **Volume de Montage (`./ml/models:/app/ml/models`)** : Ce dossier est partagé en lecture/écriture entre votre machine hôte et le conteneur `l1-ml-api`. Dès que le pipeline MLOps génère un nouveau modèle champion ou met à jour `metadata.json`, l'API ML le charge instantanément à chaud (en <10ms), garantissant un déploiement continu à zéro-downtime.
 * **Sécurité Réseau** : Les conteneurs communiquent sur un sous-réseau privé isolé. Seules les APIs et les serveurs web de visualisation (Nginx, Grafana) sont accessibles via votre machine hôte, protégeant vos bases de données contre toute intrusion externe directe.
+
+---
+
+## 🔄 Stratégie de Mise à Jour des Images Docker
+
+Pour garantir la sécurité et les performances, les images Docker sont maintenues avec la politique suivante :
+
+* **Grafana & Prometheus** : Mises à jour régulières (Versions courantes : Grafana `11.1.0`, Prometheus `v2.54.1`).
+* **PostgreSQL** : Verrouillé sur la version `15` pour éviter les conflits de données lors des upgrades majeurs. 
+* **Python** : Verrouillé sur `3.11` (stabilité et compatibilité Data Science).
+* **Node.js** : Verrouillé sur `20` LTS.
+* **Redis** : Verrouillé sur `7`.
+
+### Procédure de Mise à Jour
+
+1. **Modifier les versions** dans le fichier `docker-compose.yml`.
+2. **Rebuild complet** de la stack (sans utiliser le cache) :
+
+   ```bash
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+3. **Vérifications post-déploiement** :
+   * Les dashboards Grafana s'affichent correctement.
+   * Les métriques Prometheus remontent.
+   * Les alertes (Discord/Telegram) et exporters sont fonctionnels.
+4. **Attention PostgreSQL** : Ne JAMAIS mettre à jour la version majeure sans :
+   * Avoir créé un **Tag Git** de l'état fonctionnel.
+   * Avoir fait un dump (export complet) des bases de données au préalable.
+
+### 🛡️ Sécurité & Vulnérabilités (CVE)
+
+Avant tout déploiement sur une infrastructure Cloud (GCP, Kubernetes), il est fortement recommandé d'analyser les images Docker pour détecter d'éventuelles vulnérabilités :
+
+```bash
+# Avec Docker Scout
+docker scout quickview
+
+# Avec Trivy
+trivy image <nom_de_l_image>
+```
