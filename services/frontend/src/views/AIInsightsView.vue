@@ -166,8 +166,8 @@ onUnmounted(() => {
 
 <template>
   <div class="fixed inset-0 z-[-1] pointer-events-none bg-[#02020a]">
-    <img :src="bgStadium1" alt="Stadium Background" class="w-full h-full object-cover opacity-60" />
-    <div class="absolute inset-0 bg-gradient-to-t from-[#02020a] via-[#02020a]/80 to-[#02020a]/50"></div>
+    <img :src="bgStadium1" alt="Stadium Background" class="w-full h-full object-cover opacity-85" />
+    <div class="absolute inset-0 bg-gradient-to-t from-[#02020a]/80 via-[#02020a]/30 to-transparent"></div>
   </div>
 
   <div class="space-y-8 pb-16 w-full max-w-7xl mx-auto pt-8 relative z-10 px-4 sm:px-6 lg:px-8">

@@ -45,8 +45,8 @@ onMounted(async () => {
 
 <template>
   <div class="fixed inset-0 z-[-1] pointer-events-none bg-[#010108]">
-    <img :src="bgStadium1" alt="Stadium Background" class="w-full h-full object-cover opacity-80" />
-    <div class="absolute inset-0 bg-gradient-to-t from-[#010108]/80 via-transparent to-transparent"></div>
+    <img :src="bgStadium1" alt="Stadium Background" class="w-full h-full object-cover opacity-95" />
+    <div class="absolute inset-0 bg-gradient-to-t from-[#010108]/50 via-transparent to-transparent"></div>
   </div>
 
   <div class="space-y-10 pb-12 w-full max-w-7xl mx-auto pt-8 relative z-10 px-4 sm:px-6 lg:px-8">

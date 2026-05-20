@@ -146,8 +146,8 @@ const getInitials = (name: string) => {
 <template>
   <!-- Futuristic Background Stadium -->
   <div class="fixed inset-0 z-[-1] pointer-events-none bg-[#02020a]">
-    <img :src="bgStadium2" alt="Stadium" class="w-full h-full object-cover opacity-20 mix-blend-luminosity" />
-    <div class="absolute inset-0 bg-gradient-to-b from-[#02020a]/80 via-transparent to-[#02020a]"></div>
+    <img :src="bgStadium2" alt="Stadium" class="w-full h-full object-cover opacity-85" />
+    <div class="absolute inset-0 bg-gradient-to-b from-[#02020a]/40 via-transparent to-[#02020a]/90"></div>
   </div>
 
   <div class="space-y-10 pb-16 w-full max-w-7xl mx-auto pt-6 relative z-10 px-4 sm:px-6 lg:px-8">

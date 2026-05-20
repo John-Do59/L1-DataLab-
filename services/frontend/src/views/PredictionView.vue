@@ -1,7 +1,7 @@
 <template>
   <div class="fixed inset-0 z-[-1] pointer-events-none bg-[#050510]">
-    <img src="../assets/backgrounds/bg_stadium_1.jpg" alt="Stadium" class="w-full h-full object-cover opacity-10 mix-blend-luminosity" />
-    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-[#050510]/90 to-[#050510]"></div>
+    <img src="../assets/backgrounds/bg_stadium_1.jpg" alt="Stadium" class="w-full h-full object-cover opacity-80" />
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050510]/40 to-[#050510]"></div>
   </div>
 
   <div class="max-w-[1400px] mx-auto pt-6 px-4 pb-12 relative z-10 min-h-screen flex flex-col">
@@ -230,7 +230,7 @@
           </svg>
           <div class="flex flex-col items-center mt-1">
             <span class="text-2xl font-black text-white leading-none">{{ predictionState === 'reveal' ? result.confidence : '--' }}%</span>
-            <span class="text-[8px] text-cyan-400 font-bold uppercase tracking-widest mt-1" v-if="predictionState === 'reveal'">{{ result.confidence > 75 ? 'Élevée' : 'Moyenne' }}</span>
+            <span class="text-[8px] text-cyan-400 font-bold uppercase tracking-widest mt-1" v-if="predictionState === 'reveal'">{{ (result.confidence || 0) > 75 ? 'Élevée' : 'Moyenne' }}</span>
           </div>
         </div>
       </div>
@@ -245,13 +245,31 @@ import { useRoute } from 'vue-router'
 import api from '../api/axios'
 import NeuralCore from '../components/prediction/NeuralCore.vue'
 
+interface Team {
+  club_name: string
+  wins: number
+  losses: number
+  logo?: string
+  [key: string]: unknown
+}
+
+interface PredictionResult {
+  homeProb?: number
+  awayProb?: number
+  drawProb?: number
+  confidence?: number
+  explainability?: string[]
+  model?: string
+  version?: string
+}
+
 const route = useRoute()
-const teams = ref<any[]>([])
+const teams = ref<Team[]>([])
 const homeTeam = ref(route.query.home as string || '')
 const awayTeam = ref(route.query.away as string || '')
 
 const predictionState = ref<'idle' | 'loading' | 'reveal'>('idle')
-const result = ref<any>({})
+const result = ref<PredictionResult>({})
 const loadingProgress = ref(0)
 
 const mockFactors = [
@@ -289,8 +307,8 @@ onMounted(async () => {
   try {
     const res = await api.get('/standings')
     teams.value = res.data
-    if (!homeTeam.value && teams.value.length > 0) homeTeam.value = teams.value[0].club_name
-    if (!awayTeam.value && teams.value.length > 1) awayTeam.value = teams.value[1].club_name
+    if (!homeTeam.value && teams.value.length > 0) homeTeam.value = teams.value[0]?.club_name || ''
+    if (!awayTeam.value && teams.value.length > 1) awayTeam.value = teams.value[1]?.club_name || ''
   } catch (e) {
     console.error("Failed to load teams", e)
   }
