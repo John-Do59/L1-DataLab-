@@ -183,6 +183,14 @@ Le conteneur `frontend` sert des assets statiques Nginx (pas de volume hot-reloa
 
 ---
 
+## Documentation associée
+
+- [`rag-implementation.md`](../rag-implementation.md) — Oracle RAG, SSE, mood engine, mémoire
+- [`backend-implementation.md`](../backend-implementation.md) — App API
+- [`design.md`](../design.md) — identité visuelle
+
+---
+
 ## Objectif final
 
 Transformer L1 DataLab en plateforme SaaS IA premium de predictive analytics footballistique :

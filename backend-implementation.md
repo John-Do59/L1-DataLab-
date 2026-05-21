@@ -312,3 +312,4 @@ docker compose build app-api && docker compose up -d app-api
 - `DOCKER.md` — ports et services
 - `design.md` — identité produit
 - `FRONTEND-PLAN.md` — intégration frontend
+- `rag-implementation.md` — AI Oracle RAG (mémoire, SSE, mood engine)
