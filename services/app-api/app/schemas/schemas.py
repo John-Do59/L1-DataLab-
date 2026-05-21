@@ -65,6 +65,19 @@ class MatchResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class RagQuestionRequest(BaseModel):
+    question: str = Field(..., min_length=2, max_length=2000)
+    match_context: Optional[str] = None
+    conversation_id: Optional[int] = None
+
+class RagQuestionResponse(BaseModel):
+    answer: str
+    sources: List[str] = Field(default_factory=list)
+    model: Optional[str] = None
+    conversation_id: Optional[int] = None
+    mood: Optional[str] = None
+    confidence: Optional[float] = None
+
 class PredictionHistoryResponse(BaseModel):
     id: int
     match: MatchResponse

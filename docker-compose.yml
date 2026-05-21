@@ -15,7 +15,7 @@ services:
       - ./db/init_ml.sql:/docker-entrypoint-initdb.d/init.sql
 
   db-app:
-    image: postgres:15
+    image: pgvector/pgvector:pg15
     container_name: l1-db-app
     environment:
       POSTGRES_DB: l1_app

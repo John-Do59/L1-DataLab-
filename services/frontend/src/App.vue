@@ -49,6 +49,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenuOnClickOutside)
           <template v-if="authStore.isAuthenticated">
             <RouterLink to="/dashboard" class="hover:text-sunset-accent transition-colors">Dashboard</RouterLink>
             <RouterLink to="/prediction" class="hover:text-sunset-accent transition-colors">Predictions</RouterLink>
+            <RouterLink to="/rag" class="hover:text-sunset-accent transition-colors">RAG Agent</RouterLink>
             <RouterLink to="/ai-insights" class="hover:text-sunset-accent transition-colors">AI Insights</RouterLink>
             <RouterLink to="/history" class="hover:text-sunset-accent transition-colors">Historique</RouterLink>
           </template>

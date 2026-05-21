@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { formatApiError } from '../utils/formatApiError'
 import bgStadium2 from '../assets/backgrounds/bg_stadium_2.jpg'
 
 const router = useRouter()
@@ -19,12 +20,8 @@ const handleRegister = async () => {
   try {
     await authStore.register(username.value, email.value, password.value)
     router.push('/dashboard')
-  } catch (err: any) {
-    if (err.response && err.response.data && err.response.data.detail) {
-      errorMsg.value = err.response.data.detail
-    } else {
-      errorMsg.value = "Erreur lors de la création du compte."
-    }
+  } catch (err: unknown) {
+    errorMsg.value = formatApiError(err, 'Erreur lors de la création du compte.')
   } finally {
     loading.value = false
   }

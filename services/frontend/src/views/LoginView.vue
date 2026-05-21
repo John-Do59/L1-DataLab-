@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { formatApiError } from '../utils/formatApiError'
 import bgStadium2 from '../assets/backgrounds/bg_stadium_2.jpg'
 
 const router = useRouter()
@@ -18,8 +19,8 @@ const handleLogin = async () => {
   try {
     await authStore.login(username.value, password.value)
     router.push('/dashboard')
-  } catch {
-    errorMsg.value = "Identifiants invalides."
+  } catch (err: unknown) {
+    errorMsg.value = formatApiError(err, 'Identifiants invalides.')
   } finally {
     loading.value = false
   }

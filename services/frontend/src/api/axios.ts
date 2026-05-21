@@ -18,12 +18,15 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error)
 })
 
-// Intercepteur pour gérer les erreurs d'authentification
+// Intercepteur : redirection uniquement si une session existante expire
 api.interceptors.response.use((response) => response, (error) => {
-  if (error.response && error.response.status === 401) {
-    // Si le token est invalide ou expiré, on purge et on redirige
+  if (error.response?.status === 401) {
+    const hadToken = !!localStorage.getItem('access_token')
     localStorage.removeItem('access_token')
-    window.location.href = '/login'
+    const onAuthPage = /^\/(login|register)$/.test(window.location.pathname)
+    if (hadToken && !onAuthPage) {
+      window.location.href = '/login'
+    }
   }
   return Promise.reject(error)
 })
