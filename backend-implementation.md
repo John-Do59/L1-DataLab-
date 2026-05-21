@@ -25,7 +25,7 @@ Documentation de l'implémentation backend actuelle : **App API** (façade produ
 |---------|------------|------|
 | `app-api` | 8002 | Auth, métier, RAG, proxy ML |
 | `ml-api` | 8001 | Inférence RandomForest / XGBoost |
-| `db-app` | 5434 | PostgreSQL applicatif |
+| `db-app` | 5434 | PostgreSQL + **pgvector** (image `pgvector/pgvector:pg15`) |
 | `redis` | 6379 | Cache LFP |
 
 ---
@@ -53,7 +53,10 @@ app/
 │   └── prediction_history.py
 └── rag/
     ├── orchestrator.py     # Pipeline RAG complet
-    ├── memory/             # Conversations, embeddings
+    ├── memory/             # Conversations, embeddings (hash + sémantique)
+    │   ├── embeddings.py       # Hash 64D (fallback)
+    │   ├── semantic_embeddings.py  # nomic-embed 768D via Ollama
+    │   └── repository.py     # pgvector cosine search
     ├── retrieval/          # Context builder LFP
     ├── generation/         # Ollama, fallback, SSE
     ├── ranking/            # Mood engine, confidence
@@ -75,7 +78,8 @@ Démarrage : `start.sh` → wait PostgreSQL → `alembic upgrade head` → Uvico
 | `matches` | Rencontres (cotes, scores, status) |
 | `prediction_history` | Prédictions utilisateur (H/D/A + probas) |
 | `rag_conversations` | Sessions Oracle |
-| `rag_messages` | Messages user/assistant + embeddings JSON |
+| `rag_messages` | Messages + `embedding` vector(768) + `embedding_json` fallback |
+| `rag_conversations.summary_vector` | Résumé session en pgvector (768D) |
 
 ### Relations clés
 
@@ -225,7 +229,9 @@ Utilisé par : `/standings`, contexte RAG, dashboard frontend.
 | `ML_API_URL` | `http://ml-api:8000` | Inférence |
 | `REDIS_URL` | `redis://redis:6379/0` | Cache LFP |
 | `SECRET_KEY` | (à changer prod) | JWT |
-| `OLLAMA_URL` | — | LLM local optionnel |
+| `OLLAMA_URL` | — | LLM + embeddings nomic |
+| `EMBEDDING_MODEL` | `nomic-embed-text` | Embeddings sémantiques |
+| `EMBEDDING_DIM` | `768` | Taille vecteur pgvector |
 
 ---
 
@@ -244,8 +250,28 @@ Utilisé par : `/standings`, contexte RAG, dashboard frontend.
 |----------|---------|
 | `979d21af5881` | teams, matches, prediction_history |
 | `a1b2c3d4e5f6` | rag_conversations, rag_messages |
+| `b2c3d4e5f6a7` | pgvector extension, `embedding` vector(768), index HNSW |
 
 Commande : `alembic upgrade head` (automatique au boot Docker).
+
+### pgvector & embeddings sémantiques
+
+**Branche** : `feature/pgvector-semantic-rag`
+
+```text
+Question → embed_semantic() → nomic-embed-text (Ollama)
+                              ↓ fallback hash 64D
+         → rag_messages.embedding (vector 768)
+         → retrieval ORDER BY cosine_distance
+```
+
+| Variable | Défaut | Rôle |
+|----------|--------|------|
+| `OLLAMA_URL` | — | Génération LLM + embeddings |
+| `EMBEDDING_MODEL` | `nomic-embed-text` | Modèle embedding |
+| `EMBEDDING_DIM` | `768` | Dimension pgvector |
+
+Dépendance : `pgvector==0.3.6` dans `requirements-api.txt`.
 
 ---
 
@@ -312,4 +338,5 @@ docker compose build app-api && docker compose up -d app-api
 - `DOCKER.md` — ports et services
 - `design.md` — identité produit
 - `FRONTEND-PLAN.md` — intégration frontend
-- `rag-implementation.md` — AI Oracle RAG (mémoire, SSE, mood engine)
+- `rag-implementation.md` — AI Oracle RAG (mémoire, SSE, mood engine, pgvector)
+- `frontend-implementation.md` — design tokens, logos, vues Vue

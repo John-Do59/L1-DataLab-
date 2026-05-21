@@ -194,10 +194,10 @@ const oracleAccent = computed(() =>
         AI Football Oracle
       </p>
       <h1 class="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-sunset-accent to-sunset-secondary">
-        Neural Entity
+        Oracle Halo
       </h1>
       <p class="text-sunset-secondary/80 text-sm mt-2 font-light max-w-lg mx-auto">
-        Streaming RAG · mémoire persistante · humeur synchronisée
+        Vortex lumineux · streaming RAG · humeur synchronisée
       </p>
       <div class="mt-3 flex justify-center gap-3 flex-wrap">
         <span
@@ -213,10 +213,9 @@ const oracleAccent = computed(() =>
     </header>
 
     <section
-      class="liquid-glass rounded-3xl p-6 md:p-8 mb-6 border border-sunset-primary/25 liquid-glow relative overflow-hidden transition-shadow duration-300"
-      :class="{ 'shadow-[0_0_80px_-15px_rgba(114,50,242,0.55)]': loading }"
+      class="mb-6 relative flex flex-col items-center justify-center py-4 transition-[filter] duration-300"
+      :class="{ 'drop-shadow-[0_0_60px_rgba(114,50,242,0.35)]': loading }"
     >
-      <div class="absolute inset-0 ai-glow pointer-events-none opacity-60" />
       <RagEntity
         :state="displayState"
         :mood="entityMood"

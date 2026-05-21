@@ -131,13 +131,19 @@
           <div class="px-4 py-1.5 bg-[#060b19]/80 backdrop-blur-md rounded-lg border border-cyan-500/40 text-[10px] font-bold tracking-widest uppercase text-center shadow-[0_0_15px_rgba(0,0,0,0.5)] whitespace-nowrap text-cyan-100">Défense {{ homeStats.defense }}</div>
         </div>
 
-        <!-- Central Orb Area -->
+        <!-- Central Oracle Halo (même entité que RAG) -->
         <div class="w-[300px] h-[300px] flex items-center justify-center relative z-30">
           <div class="absolute top-[-60px] text-[12px] font-bold tracking-[0.2em] text-white/70 w-full text-center uppercase">
             {{ predictionState === 'idle' ? 'EN ATTENTE' : (predictionState === 'loading' ? 'ANALYSE EN COURS' : 'PRÉDICTION IA TERMINÉE') }}
           </div>
           
-          <NeuralCore :state="predictionState" />
+          <RagEntity
+            :state="oracleEntityState"
+            mood="stable"
+            :stream-intensity="oracleStreamIntensity"
+            halo-size="min(300px, 78vw)"
+            :show-status="false"
+          />
 
           <div class="absolute bottom-[-60px] w-64 flex flex-col items-center opacity-100 transition-opacity" :class="{'opacity-0': predictionState === 'idle'}">
             <span class="text-[10px] font-bold tracking-[0.2em] text-cyan-400 mb-2">SIMULATION EN COURS {{ loadingProgress }}%</span>
@@ -265,7 +271,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api/axios'
-import NeuralCore from '../components/prediction/NeuralCore.vue'
+import RagEntity, { type RagEntityState } from '../components/rag/RagEntity.vue'
 import { buildTeamVisualStyle, getTeamVisuals } from '../utils/teamVisuals'
 
 interface Team {
@@ -347,6 +353,19 @@ const awayTeamObj = computed(() => teams.value.find(t => t.club_name === awayTea
 
 const canPredict = computed(() => homeTeam.value && awayTeam.value && homeTeam.value !== awayTeam.value)
 
+/** Même composant + image que /rag (oracle-halo.png via RagEntity → OracleGalaxy) */
+const oracleEntityState = computed((): RagEntityState => {
+  if (predictionState.value === 'loading') return 'generating'
+  if (predictionState.value === 'reveal') return 'responding'
+  return 'idle'
+})
+
+const oracleStreamIntensity = computed(() => {
+  if (predictionState.value === 'loading') return loadingProgress.value / 100
+  if (predictionState.value === 'reveal') return 0.55
+  return 0
+})
+
 const FALLBACK_HOME = buildTeamVisualStyle({
   primary: '#22d3ee',
   secondary: '#0891b2',
@@ -406,7 +425,6 @@ const runPrediction = async () => {
 </script>
 
 <style scoped>
-
 @keyframes dash {
   to { stroke-dashoffset: -100; }
 }

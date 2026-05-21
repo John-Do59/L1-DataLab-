@@ -53,7 +53,9 @@ rag/
 ├── orchestrator.py          # Chef d'orchestre (prepare_turn, stream, answer_once)
 ├── memory/
 │   ├── repository.py        # CRUD conversations + messages + retrieval
-│   └── embeddings.py        # Embeddings hash-based (64 dim) + cosine
+│   ├── embeddings.py        # Hash 64D (fallback)
+│   ├── semantic_embeddings.py  # nomic-embed 768D (Ollama)
+│   └── repository.py        # pgvector + repli hash
 ├── retrieval/
 │   └── context_builder.py   # Contexte LFP + mémoire + fallback answers
 ├── ranking/
@@ -81,10 +83,15 @@ rag/
 | `rag_conversations.summary_embedding` | JSON | Vecteur résumé |
 | `rag_messages.role` | string | `user` \| `assistant` |
 | `rag_messages.content` | text | Contenu message |
-| `rag_messages.embedding_json` | JSON | Vecteur message (retrieval) |
-| `rag_messages.message_metadata` | JSON | mood, model, etc. |
+| `rag_messages.embedding_json` | JSON | Fallback hash 64D |
+| `rag_messages.embedding` | vector(768) | Embedding sémantique pgvector |
+| `rag_conversations.summary_vector` | vector(768) | Résumé session |
+| `rag_messages.message_metadata` | JSON | mood, model, `embedding_source` |
 
-Migration : `alembic/versions/a1b2c3d4e5f6_add_rag_conversations_messages.py`
+Migrations :
+
+- `a1b2c3d4e5f6` — tables RAG
+- `b2c3d4e5f6a7` — extension pgvector + index HNSW
 
 ---
 
@@ -167,7 +174,7 @@ Ordre d'exécution :
 2. **Message user** — persistance immédiate
 3. **Prédictions** — 5 dernières via `PredictionRepository` (selectinload)
 4. **Confidence estimate** — moyenne des max(prob_h, prob_d, prob_a)
-5. **Retrieval mémoire** — top 4 messages par similarité cosine
+5. **Retrieval mémoire** — pgvector `cosine_distance` (768D) ou repli hash 64D
 6. **Messages récents** — 4 derniers tours
 7. **Contexte LFP** — `build_retrieval_context()` → classement + mémoire
 8. **Mood engine** — `compute_entity_mood()` → mood + confidence affichée
@@ -192,11 +199,23 @@ Même `prepare_turn()`, puis génération complète (Ollama ou fallback), persis
 
 ## 6. Mémoire conversationnelle
 
-### Embeddings légers (`memory/embeddings.py`)
+### Embeddings
 
-- **Pas de modèle externe** : hashing SHA256 par token → vecteur 64D normalisé
-- **Avantage** : zéro dépendance GPU, latence minimale, suffisant pour sessions courtes
-- **Limite** : sémantique approximative (évolution : OpenAI / sentence-transformers)
+#### Mode sémantique (branche `feature/pgvector-semantic-rag`)
+
+- **Modèle** : `nomic-embed-text` via `POST {OLLAMA_URL}/api/embeddings`
+- **Dimension** : `vector(768)` en PostgreSQL (extension **pgvector**)
+- **Index** : HNSW `vector_cosine_ops` sur `rag_messages.embedding`
+- **Repli** : hash 64D (`embedding_json`) si Ollama indisponible
+
+```python
+# semantic_embeddings.py
+vec, source = await embed_semantic(text)  # source: 'nomic' | 'hash'
+```
+
+#### Mode legacy (`memory/embeddings.py`)
+
+- Hashing SHA256 par token → vecteur 64D (fallback)
 
 ```python
 EMBED_DIM = 64
@@ -292,8 +311,10 @@ La `confidence` retournée alimente l'UI (jauge, intensité stream).
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `OLLAMA_URL` | *(vide)* | Si défini → mode LLM |
-| `OLLAMA_MODEL` | `qwen2.5:7b` | Modèle Ollama |
+| `OLLAMA_URL` | *(vide)* | Si défini → mode LLM + embeddings |
+| `OLLAMA_MODEL` | `qwen2.5:7b` | Modèle Ollama génération |
+| `EMBEDDING_MODEL` | `nomic-embed-text` | Modèle embeddings sémantiques |
+| `EMBEDDING_DIM` | `768` | Dimension pgvector |
 
 ### Client (`generation/ollama.py`)
 
@@ -404,7 +425,7 @@ docker compose up -d app-api
 
 | Priorité | Évolution |
 |----------|-----------|
-| Haute | Embeddings sémantiques (sentence-transformers / API) |
+| Haute | ~~Embeddings sémantiques~~ → pgvector + nomic-embed (branche dédiée) |
 | Haute | Brancher `teamRegistry` / `resolveTeamWithLogo` dans contexte |
 | Moyenne | Vector store dédié (pgvector / Qdrant) |
 | Moyenne | Historique conversations listable côté UI |
@@ -416,9 +437,10 @@ docker compose up -d app-api
 ## 14. Liens documentation
 
 - [`backend-implementation.md`](./backend-implementation.md) — App API globale
+- [`frontend-implementation.md`](./frontend-implementation.md) — design tokens, team colors UI
 - [`design.md`](./design.md) — identité Oracle & mood visuel
 - [`FRONTEND-PLAN.md`](./FRONTEND-PLAN.md) — RagView & stack frontend
-- [`DOCKER.md`](./DOCKER.md) — ports et services
+- [`DOCKER.md`](./DOCKER.md) — pgvector image & ports
 
 ---
 
