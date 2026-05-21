@@ -24,7 +24,7 @@ Inspirations : *Linear*, *Vercel*, *Anthropic*, *Perplexity*.
 | **AI Oracle** | RAG, mémoire, mood engine, SSE | ✅ |
 | **Logos dynamiques** | Registre, cache, preload boot | ✅ |
 | **Couleurs clubs** | `getTeamColors()` → glows contextuels | ✅ branche `feature/team-colors-visual-system` |
-| **RAG sémantique** | pgvector 768D + nomic-embed | 🔜 branche `feature/pgvector-semantic-rag` |
+| **RAG sémantique** | pgvector 768D + nomic-embed | ✅ branche `feature/pgvector-semantic-rag` |
 
 Positionnement : **Agentic Analytics as a Service**.
 
