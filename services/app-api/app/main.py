@@ -115,6 +115,8 @@ async def read_users_me(current_user = Depends(get_current_user)):
 
 def normalize_team_name(name: str) -> str:
     name_lower = name.lower()
+    if "paris fc" in name_lower or "pfc" in name_lower:
+        return "Paris FC"
     if "paris" in name_lower or "psg" in name_lower:
         return "Paris Saint-Germain"
     if "marseille" in name_lower or "om" in name_lower:
