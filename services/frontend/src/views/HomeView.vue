@@ -26,9 +26,9 @@ import toulousefcLogo from '../assets/logos/toulousefc.png'
 import rcstrasbourgalsaceLogo from '../assets/logos/rcstrasbourgalsace.png'
 
 // Assets - Screenshots
-import dashboardImg from '../assets/backgrounds/ballon-ia5.png'
+import dashboardImg from '../assets/backgrounds/ballon-entite.png'
 import heroPredictionImg from '../assets/screenshots/ballon-ml.jpg'
-import insightPanelImg from '../assets/screenshots/ballon-ia2.png'
+import insightPanelImg from '../assets/screenshots/ballon-entite2.png'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -221,7 +221,7 @@ const goDashboard = () => {
 
       <!-- Dashboard Mockup caché initialement (Apparaît au scroll) -->
       <div class="dashboard-preview absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] md:w-[75vw] h-[70vh] liquid-glass rounded-[2rem] border border-sunset-primary/30 shadow-[0_0_100px_-20px_rgba(200,118,255,0.4)] opacity-0 translate-y-32 rotate-x-[15deg] scale-90 z-30 flex flex-col items-center justify-center overflow-hidden bg-black/40 backdrop-blur-3xl">
-        <img :src="dashboardImg" alt="Dashboard Preview" class="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-screen" />
+        <img :src="dashboardImg" alt="Dashboard Preview" class="absolute inset-0 w-full h-full object-cover object-center opacity-60 mix-blend-screen" />
         <div class="absolute inset-0 bg-gradient-to-tr from-sunset-primary/10 to-transparent"></div>
       </div>
     </section>
@@ -253,7 +253,7 @@ const goDashboard = () => {
         <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-sunset-secondary/20 blur-[120px] rounded-full pointer-events-none"></div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-7xl w-full items-center">
           <div class="order-2 md:order-1 liquid-glass rounded-3xl h-[300px] md:h-[450px] border border-white/10 relative overflow-hidden flex items-center justify-center shadow-2xl">
-             <img :src="insightPanelImg" alt="Insight Panel" class="w-full h-full object-cover opacity-70" />
+             <img :src="insightPanelImg" alt="Insight Panel" class="absolute inset-0 w-full h-full object-cover object-center opacity-70" />
              <!-- Overlay IA text façon Agent -->
              <div class="absolute inset-x-8 bottom-8 p-6 bg-black/60 backdrop-blur-2xl rounded-2xl border border-sunset-accent/40 text-sm text-white/90 shadow-[0_0_30px_rgba(200,118,255,0.2)]">
                 <span class="text-sunset-accent font-bold mb-2 block text-xs tracking-widest uppercase">Agent Output</span>

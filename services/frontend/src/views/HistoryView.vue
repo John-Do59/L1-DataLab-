@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import api from '../api/axios'
 import ProbabilityBar from '../components/dashboard/ProbabilityBar.vue'
 import { useAuthStore } from '../stores/auth'
-import bgStadium2 from '../assets/backgrounds/pngtree-vibrant-neon-stadium-with-crowd-and-sports-field-at-night-image_21063300.webp'
+import bgStadium2 from '../assets/backgrounds/ballon-entite.png'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -56,6 +56,9 @@ const fetchHistory = async () => {
 }
 
 onMounted(async () => {
+  if (authStore.isAuthenticated && !authStore.user) {
+    await authStore.fetchUser()
+  }
   await fetchHistory()
 })
 
@@ -145,9 +148,9 @@ const getInitials = (name: string) => {
 
 <template>
   <!-- Futuristic Background Stadium -->
-  <div class="fixed inset-0 z-[-1] pointer-events-none bg-[#02020a]">
-    <img :src="bgStadium2" alt="Stadium" class="w-full h-full object-cover opacity-85" />
-    <div class="absolute inset-0 bg-gradient-to-b from-[#02020a]/40 via-transparent to-[#02020a]/90"></div>
+  <div class="fixed inset-0 z-[-1] pointer-events-none bg-[#010108] flex items-center justify-center">
+    <img :src="bgStadium2" alt="Stadium" class="w-full h-full object-contain object-center opacity-75 scale-[0.92]" />
+    <div class="absolute inset-0 bg-gradient-to-b from-[#010108]/50 via-transparent to-[#010108]/90"></div>
   </div>
 
   <div class="space-y-10 pb-16 w-full max-w-7xl mx-auto pt-6 relative z-10 px-4 sm:px-6 lg:px-8">
@@ -158,7 +161,7 @@ const getInitials = (name: string) => {
       
       <div class="relative z-10">
         <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-sunset-accent to-purple-400 tracking-tight uppercase">
-          Prediction Ledger
+          Historique des predictions
         </h1>
         <p class="text-sunset-secondary mt-1 font-medium">
           Historique complet des simulations neuronales pour <span class="text-sunset-primary">{{ authStore.user?.username || 'Analyst' }}</span>.
@@ -166,7 +169,7 @@ const getInitials = (name: string) => {
       </div>
 
       <div class="mt-4 md:mt-0 flex gap-4 relative z-10">
-        <button @click="router.push('/prediction')" class="px-6 py-2.5 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/40 text-cyan-300 font-bold rounded-xl shadow-[0_0_15px_rgba(34,211,238,0.2)] hover:scale-105 transition-all">
+        <button @click="router.push('/prediction')" class="px-6 py-2.5 bg-gradient-to-r from-sunset-primary/30 to-sunset-secondary/30 border border-sunset-secondary/40 text-sunset-accent font-bold rounded-xl shadow-[0_0_15px_rgba(200,118,255,0.2)] hover:scale-105 transition-all">
           ⚡ Nouvelle Simulation
         </button>
         <button @click="router.push('/dashboard')" class="px-6 py-2.5 bg-white/5 border border-white/10 text-white/80 rounded-xl hover:bg-white/10 transition-colors">
