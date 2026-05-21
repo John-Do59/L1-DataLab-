@@ -1,8 +1,12 @@
+import os
 from sqlalchemy import String, Integer, Float, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List, Optional
+from pgvector.sqlalchemy import Vector
 from ..core.database import Base
+
+EMBEDDING_DIM = int(os.getenv("EMBEDDING_DIM", "768"))
 
 class User(Base):
     __tablename__ = "users"
@@ -80,6 +84,9 @@ class RagConversation(Base):
     title: Mapped[str] = mapped_column(String(200), default="Nouvelle analyse")
     summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="")
     summary_embedding: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    summary_vector: Mapped[Optional[list]] = mapped_column(
+        Vector(EMBEDDING_DIM), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -101,6 +108,9 @@ class RagMessage(Base):
     role: Mapped[str] = mapped_column(String(20))  # user | assistant | system
     content: Mapped[str] = mapped_column(Text)
     embedding_json: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    embedding: Mapped[Optional[list]] = mapped_column(
+        Vector(EMBEDDING_DIM), nullable=True
+    )
     message_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

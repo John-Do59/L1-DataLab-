@@ -1,11 +1,13 @@
 from datetime import datetime
 from typing import List, Optional
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.models import RagConversation, RagMessage
-from .embeddings import embed_text, cosine_similarity
+from .embeddings import cosine_similarity, embed_text as embed_text_hash
+from .semantic_embeddings import embed_semantic
 
 class RagMemoryRepository:
     def __init__(self, session: AsyncSession):
@@ -41,12 +43,14 @@ class RagMemoryRepository:
         *,
         metadata: Optional[dict] = None,
     ) -> RagMessage:
+        vec, source = await embed_semantic(content)
         msg = RagMessage(
             conversation_id=conversation_id,
             role=role,
             content=content,
-            embedding_json=embed_text(content),
-            message_metadata=metadata or {},
+            embedding_json=vec if source == "hash" else None,
+            embedding=vec if source.startswith("nomic") else None,
+            message_metadata={**(metadata or {}), "embedding_source": source},
         )
         self.session.add(msg)
         await self.session.flush()
@@ -65,12 +69,32 @@ class RagMemoryRepository:
     async def retrieve_relevant_memory(
         self, conversation_id: int, query: str, top_k: int = 4
     ) -> List[RagMessage]:
+        query_vec, source = await embed_semantic(query)
+
+        if source.startswith("nomic") and query_vec:
+            distance = RagMessage.embedding.cosine_distance(query_vec)
+            q = (
+                select(RagMessage)
+                .where(
+                    RagMessage.conversation_id == conversation_id,
+                    RagMessage.embedding.isnot(None),
+                    RagMessage.role.in_(("user", "assistant")),
+                )
+                .order_by(distance)
+                .limit(top_k)
+            )
+            res = await self.session.execute(q)
+            semantic = list(res.scalars().all())
+            if semantic:
+                return semantic
+
         q = select(RagMessage).where(RagMessage.conversation_id == conversation_id)
         res = await self.session.execute(q)
         messages = res.scalars().all()
         if not messages:
             return []
-        query_emb = embed_text(query)
+
+        query_emb = embed_text_hash(query)
         scored = [
             (cosine_similarity(query_emb, m.embedding_json or []), m)
             for m in messages
@@ -85,7 +109,15 @@ class RagMemoryRepository:
         prev = (conversation.summary or "").strip()
         snippet = latest_exchange[:500]
         conversation.summary = f"{prev}\n---\n{snippet}"[-2000:] if prev else snippet
-        conversation.summary_embedding = embed_text(conversation.summary)
+
+        vec, source = await embed_semantic(conversation.summary)
+        if source.startswith("nomic"):
+            conversation.summary_vector = vec
+            conversation.summary_embedding = None
+        else:
+            conversation.summary_embedding = vec
+            conversation.summary_vector = None
+
         conversation.updated_at = datetime.utcnow()
         if conversation.title == "Nouvelle analyse" and latest_exchange:
             conversation.title = latest_exchange.split("\n")[0][:80]
