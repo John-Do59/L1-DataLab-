@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import api from '../api/axios'
 import ProbabilityBar from '../components/dashboard/ProbabilityBar.vue'
 import { useAuthStore } from '../stores/auth'
+import { hydrateStandingsLogos, resolveTeamLogo } from '../utils/teamLogos'
 import bgStadium2 from '../assets/backgrounds/ballon-entite.png'
 
 const authStore = useAuthStore()
@@ -39,17 +40,37 @@ interface PredictionHistory {
 
 const predictions = ref<PredictionHistory[]>([])
 const loading = ref(true)
+const fetchError = ref('')
 const searchQuery = ref('')
 const filterStatus = ref<'all' | 'finished' | 'scheduled'>('all')
 const filterResult = ref<'all' | 'correct' | 'incorrect'>('all')
 
+const enrichPredictionLogos = (items: PredictionHistory[]): PredictionHistory[] =>
+  items.map((pred) => ({
+    ...pred,
+    match: {
+      ...pred.match,
+      home_team: {
+        ...pred.match.home_team,
+        logo: resolveTeamLogo(pred.match.home_team.name, pred.match.home_team.logo),
+      },
+      away_team: {
+        ...pred.match.away_team,
+        logo: resolveTeamLogo(pred.match.away_team.name, pred.match.away_team.logo),
+      },
+    },
+  }))
+
 const fetchHistory = async () => {
   loading.value = true
+  fetchError.value = ''
   try {
-    const res = await api.get('/predictions')
-    predictions.value = res.data
+    await hydrateStandingsLogos()
+    const predRes = await api.get<PredictionHistory[]>('/predictions')
+    predictions.value = enrichPredictionLogos(predRes.data)
   } catch (e) {
     console.error("Failed to fetch prediction history", e)
+    fetchError.value = "Impossible de charger l'historique. Réessayez dans un instant."
   } finally {
     loading.value = false
   }
@@ -304,10 +325,18 @@ const getInitials = (name: string) => {
       <span class="text-sm font-semibold tracking-wider text-sunset-secondary">Décryptage du registre neural...</span>
     </div>
 
+    <div v-else-if="fetchError" class="liquid-glass rounded-2xl p-16 border border-red-400/20 text-center flex flex-col items-center gap-4">
+      <h3 class="text-xl font-bold text-red-300">Erreur de chargement</h3>
+      <p class="text-sm text-sunset-secondary max-w-md">{{ fetchError }}</p>
+      <button @click="fetchHistory" class="mt-4 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl">
+        Réessayer
+      </button>
+    </div>
+
     <div v-else-if="filteredPredictions.length === 0" class="liquid-glass rounded-2xl p-16 border border-white/5 text-center flex flex-col items-center gap-4">
       <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/20 border border-white/10 text-2xl font-black mb-2">?</div>
       <h3 class="text-xl font-bold text-white">Aucune prédiction enregistrée</h3>
-      <p class="text-sm text-sunset-secondary max-w-md">Aucun résultat ne correspond à vos filtres de recherche. Lancez une nouvelle simulation ou modifiez vos critères.</p>
+      <p class="text-sm text-sunset-secondary max-w-md">{{ predictions.length === 0 ? 'Lancez une simulation depuis la page Prédictions pour alimenter votre historique.' : 'Aucun résultat ne correspond à vos filtres de recherche.' }}</p>
       <button @click="router.push('/prediction')" class="mt-4 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.4)]">
         Faire une prédiction
       </button>
@@ -375,8 +404,13 @@ const getInitials = (name: string) => {
           
           <!-- Home -->
           <div class="flex flex-col items-center w-5/12 gap-3">
-            <div class="w-12 h-12 rounded-full bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-300">
-              <img v-if="pred.match.home_team.logo" :src="pred.match.home_team.logo" class="w-8 h-8 object-contain" />
+            <div class="w-14 h-14 rounded-full bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-300 p-2">
+              <img
+                v-if="pred.match.home_team.logo"
+                :src="pred.match.home_team.logo"
+                :alt="pred.match.home_team.name"
+                class="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(34,211,238,0.35)]"
+              />
               <div v-else class="text-xs text-white/50 font-bold font-mono">{{ getInitials(pred.match.home_team.name) }}</div>
             </div>
             <span class="text-xs text-white font-bold tracking-wide text-center leading-snug truncate w-full">{{ pred.match.home_team.name }}</span>
@@ -398,8 +432,13 @@ const getInitials = (name: string) => {
 
           <!-- Away -->
           <div class="flex flex-col items-center w-5/12 gap-3">
-            <div class="w-12 h-12 rounded-full bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-300">
-              <img v-if="pred.match.away_team.logo" :src="pred.match.away_team.logo" class="w-8 h-8 object-contain" />
+            <div class="w-14 h-14 rounded-full bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-300 p-2">
+              <img
+                v-if="pred.match.away_team.logo"
+                :src="pred.match.away_team.logo"
+                :alt="pred.match.away_team.name"
+                class="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.35)]"
+              />
               <div v-else class="text-xs text-white/50 font-bold font-mono">{{ getInitials(pred.match.away_team.name) }}</div>
             </div>
             <span class="text-xs text-white font-bold tracking-wide text-center leading-snug truncate w-full">{{ pred.match.away_team.name }}</span>

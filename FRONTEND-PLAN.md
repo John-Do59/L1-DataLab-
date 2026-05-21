@@ -1,374 +1,193 @@
 # L1 DataLab Studio — Frontend Premium SaaS Vision
 
-## Vision Produit
+## Vision produit
 
-Le frontend de **L1 DataLab Studio** doit refléter une plateforme IA moderne, premium et immersive, inspirée des meilleurs produits AI actuels :
+Le frontend de **L1 DataLab Studio** reflète une plateforme IA moderne, premium et immersive, inspirée de :
 
-* Leonardo.ai
-* Vercel
-* Linear
-* Perplexity
-* Arc Browser
-* Raycast
-* Anthropic Console
+* Leonardo.ai · Vercel · Linear · Perplexity · Arc Browser · Raycast · Anthropic Console
 
-L’objectif n’est pas seulement de construire un dashboard football, mais une expérience SaaS haut de gamme orientée :
-
-* IA
-* agentic systems
-* data visualization
-* predictive analytics
-* onboarding immersif
+> **« Agentic Analytics as a Service »** — analyser, prédire, expliquer et assister sur le championnat Ligue 1.
 
 ---
 
-# Positionnement Produit
+## Stack frontend
 
-## Concept
->
-> “Agentic Analytics as a Service”
-
-L1 DataLab devient :
-
-* une plateforme intelligente,
-* capable d’analyser,
-* prédire,
-* expliquer,
-* et assister l’utilisateur dans la compréhension du championnat.
-
-Le frontend doit transmettre :
-
-* sophistication,
-* fluidité,
-* précision,
-* modernité,
-* sensation “AI-native”.
+| Couche | Technologies |
+|--------|----------------|
+| Core | Vue.js 3, Vite, TypeScript, Vue Router, Pinia, Axios |
+| UI | TailwindCSS v4, Liquidglass custom classes |
+| Motion | GSAP, ScrollTrigger |
+| API | App API (`localhost:8002`), JWT Bearer |
 
 ---
 
-# Stack Frontend
-
-## Core
-
-* Vue.js 3
-* Vite
-* TypeScript
-* Vue Router
-* Pinia
-* Axios
-
-## UI / Animation
-
-* TailwindCSS
-* GSAP
-* ScrollTrigger
-* Framer Motion
-* Lenis smooth scroll
-
----
-
-# Direction Artistique
-
-## Palette — “Sunset Mystique”
-
-### Couleurs principales
-
-* Deep Navy (`#20115b`)
-* Midnight Purple (`#010108` background absolu)
-* Sunset Orange / Pink (`#f6b3e5` Rose cendré)
-* Neon Lilas (`#c876ff`)
-* Electric Violet (`#7232f2`)
-
-### Ambiance & Style : Apple iOS 26 Liquidglass
-
-L'interface adoptera un look futuriste ultra-premium inspiré d'une hypothétique version "Apple iOS 26 Liquidglass" :
-
-* **Glassmorphism poussé à l'extrême** : Flous d'arrière-plan profonds (backdrop-filter: blur), bordures translucides 1px, et réflexions lumineuses subtiles.
-* **Liquid Transitions** : Les éléments ne disparaissent pas, ils se transforment de manière organique (morphing de formes).
-* **Typographie** : minimaliste, aérée, sans-serif géométrique très fine avec un tracking précis.
-* **Glow & Aura** : Des halos lumineux de couleur `Sunset Mystique` qui suivent les actions de l'utilisateur (hover magnétiques).
-
----
-
-# Structure Frontend
+## Structure actuelle (`services/frontend/src/`)
 
 ```text
-frontend/
-├── src/
-│
+src/
 ├── api/
-│   ├── auth.ts
-│   ├── matches.ts
-│   ├── predictions.ts
-│
+│   ├── axios.ts          # Intercepteurs JWT + gestion 401
+│   └── ragStream.ts      # Client SSE Oracle RAG
+├── data/
+│   └── teamRegistry.ts   # 18 clubs Ligue 1 (canonique, aliases, colors)
+├── types/
+│   └── team.ts           # Ligue1Team, TeamColors, ResolvedTeam
+├── utils/
+│   ├── teamLogos.ts      # Cache, preload, hydrate standings
+│   └── formatApiError.ts # Messages d'erreur lisibles
 ├── stores/
-│   ├── auth.ts
-│   ├── ui.ts
-│
-├── layouts/
-│   ├── AuthLayout.vue
-│   ├── DashboardLayout.vue
-│
+│   └── auth.ts           # login, register, fetchUser, JWT
 ├── views/
-│   ├── LandingView.vue
+│   ├── HomeView.vue      # Landing GSAP + constellation logos
 │   ├── LoginView.vue
 │   ├── RegisterView.vue
 │   ├── DashboardView.vue
-│   ├── MatchView.vue
-│
+│   ├── PredictionView.vue   # Neural Core + POST /predict
+│   ├── HistoryView.vue      # GET /predictions + logos enrichis
+│   ├── RagView.vue          # AI Oracle SSE
+│   ├── ProfileView.vue
+│   └── AIInsightsView.vue   # MLOps pipeline
 ├── components/
-│   ├── hero/
-│   ├── dashboard/
-│   ├── onboarding/
-│   ├── animations/
-│
-├── composables/
-├── router/
-├── assets/
-└── styles/
+│   ├── prediction/       # NeuralCore, PredictionHistory
+│   ├── dashboard/      # MatchCard, LeagueStandings, TopScorers
+│   └── landing/          # FloatingLogo
+├── router/index.ts
+├── main.ts               # initTeamLogoSystem() au boot
+└── App.vue               # Nav glass + auth menu
 ```
 
 ---
 
-# UX Goals
+## Routes & auth
 
-## Objectifs UX
+| Route | Auth | Description |
+|-------|------|-------------|
+| `/` | — | Landing premium |
+| `/login`, `/register` | — | JWT OAuth2 form |
+| `/dashboard` | ✅ | Matchs, classement, buteurs |
+| `/prediction` | ✅ | Prédiction IA + Neural Core |
+| `/history` | ✅ | Historique utilisateur |
+| `/rag` | ✅ | AI Oracle (streaming) |
+| `/profile` | ✅ | Profil + déconnexion |
+| `/ai-insights` | ✅ | MLOps / pipeline ML |
 
-Le frontend doit donner l’impression :
-
-* d’un produit IA premium,
-* rapide,
-* intelligent,
-* élégant,
-* vivant,
-* fluide.
-
-Le focus UX doit être :
-
-* motion design subtil,
-* transitions douces,
-* animations GPU-friendly,
-* expérience immersive,
-* navigation ultra fluide.
+Guard global : `meta.requiresAuth` → redirect `/login`.
 
 ---
 
-# Landing Page Premium
+## Système logos (implémenté)
 
-## Hero Section
+### Boot (`main.ts`)
 
-* énorme headline typographique
-* gradient animé Liquidglass
-* CTA premium avec effet magnétique
-* métriques Ligue 1 live
-* glow effects subtils en arrière-plan
+```typescript
+initTeamLogoSystem()
+// → preloadTeamLogos()      // new Image() pour tous les assets
+// → hydrateStandingsLogos()   // un seul GET /standings
+```
 
----
+### API publique (`utils/teamLogos.ts`)
 
-# Scroll Gallery Premium (Leonardo.ai Inspired)
+| Fonction | Rôle |
+|----------|------|
+| `logoCache` | Map mémoire nom → URL |
+| `resolveTeamLogo(name, apiLogo?)` | Résolution avec cache |
+| `getCachedTeamLogo(name)` | Lecture cache seule |
+| `resolveTeamWithLogo(name)` | Métadonnées complètes (RAG futur) |
+| `preloadTeamLogos()` | Préchargement images |
+| `hydrateStandingsLogos()` | Hydratation LFP unique |
 
-## Vision
+### Registre (`data/teamRegistry.ts`)
 
-Créer une expérience immersive type :
-
-* Leonardo.ai
-* Apple product storytelling
-* modern AI SaaS showcase
-
----
-
-# Scroll Animation Requirements
-
-## Comportement
-
-* section sticky en plein écran
-* pile d’images / dashboards
-* défilement lié au scroll
-* transitions fluides
-* effet profondeur
-* léger scale dynamique
-* opacité progressive
-* micro-parallax subtil
+- 18 équipes Ligue 1 2025/26
+- `resolveLigue1Team()`, `getTeamColors()`, `getAllLigue1Teams()`
+- Aliases couvrant noms backend (`Marseille`, `PSG`, `Lens`…)
 
 ---
 
-# Architecture Animation
+## Pages — état d'avancement
 
-## Structure
+### ✅ Phase 1 — Foundation
 
-* section très haute (300vh+)
-* container sticky en 100vh
-* images préchargées
-* transitions synchronisées au scroll
+- [x] Landing Hero + constellation GSAP
+- [x] Login / Register + JWT
+- [x] Messages d'erreur API explicites (`formatApiError`)
+- [x] Intercepteur 401 intelligent
 
----
+### ✅ Phase 2 — Dashboard & prédictions
 
-# Technologies recommandées
+- [x] Dashboard (matchday, standings, top scorers)
+- [x] PredictionView + Neural Core (idle/loading/reveal)
+- [x] Persistance prédictions (`POST /predict`)
+- [x] HistoryView avec logos, filtres, stats
+- [x] Bannière « enregistré dans l'historique »
 
-## Animation Engine
+### ✅ Phase 3 — AI Experience
 
-**GSAP + ScrollTrigger**
+- [x] RagView — Oracle conversationnel
+- [x] Streaming SSE (`/insights/question/stream`)
+- [x] ProfileView
+- [x] AIInsightsView (MLOps)
 
-Pourquoi :
+### 🔜 Phase 4 — Premium polish
 
-* pinning précis
-* scrub fluide
-* performance mobile
-* timeline complexe
-* contrôle cinématique
-
----
-
-# Effets visuels
-
-## Effets autorisés
-
-* opacity fade
-* scale interpolation
-* blur léger (Liquidglass)
-* translateY subtil
-* z-index dynamique
-* glow doux
-* parallax faible
-
-## Effets interdits
-
-* animations agressives
-* zoom excessif
-* transitions brutales
-* effets “gaming”
-* overload visuel
+- [ ] Glows dynamiques par `TeamColors` sur cartes historique
+- [ ] Pricing page (branche `feature/frontend-pricing` à merger)
+- [ ] Auto-refresh JWT
+- [ ] `resolveTeamWithLogo` dans PredictionView + RAG
+- [ ] Tests E2E Playwright auth + predict + history
 
 ---
 
-# Pages à Développer
+## Intégration API
 
-## Phase 1 — Foundation
+```text
+Frontend (8080 / 5173)
+    ↓ Axios + JWT
+App API (8002)
+    ├── /auth/login, /users, /users/me
+    ├── /predict, /predictions
+    ├── /standings, /current-matchday, /top-scorers
+    └── /insights/question, /insights/question/stream
+```
 
-### Landing
-
-* Hero premium
-* Scroll gallery
-* CTA onboarding
-
-### Auth
-
-* Login
-* Register
-* JWT integration
+Variable : `VITE_API_URL` (défaut `http://localhost:8002`).
 
 ---
 
-## Phase 2 — Dashboard
+## Sécurité frontend
 
-### Dashboard utilisateur
-
-* prochains matchs
-* prédictions IA
-* probabilités
-* classement
-
-### Match Details
-
-* statistiques
-* historique
-* prédiction détaillée
+- Token JWT dans `localStorage` (`access_token`)
+- Injection automatique `Authorization: Bearer`
+- 401 : purge token + redirect uniquement si session existante hors pages auth
+- Routes protégées via guard router
 
 ---
 
-## Phase 3 — AI Experience
+## Performance
 
-### Insights IA
-
-* explications du modèle
-* génération de résumés
-* assistant IA local
-
-### Agentic UX
-
-* suggestions automatiques
-* insights contextualisés
-* recommandations intelligentes
+- Lazy routes (`HistoryView`, `RagView`, `ProfileView`)
+- Préchargement logos au boot (zéro flicker historique)
+- Cache mémoire logos (pas de refetch standings par navigation)
+- Images locales bundlées (Vite) pour fallback offline
 
 ---
 
-# API Integration
+## Docker & dev local
 
-## Backend connecté
+| Mode | Commande |
+|------|----------|
+| **Dev HMR** | `cd services/frontend && npm run dev` → `:5173` |
+| **Prod Docker** | `docker compose build frontend && docker compose up -d frontend` → `:8080` |
 
-Frontend → App API
-
-L’App API centralise :
-
-* auth JWT
-* récupération des matchs
-* historique utilisateur
-* appels ML API
-* insights IA
+Le conteneur `frontend` sert des assets statiques Nginx (pas de volume hot-reload).
 
 ---
 
-# Sécurité
+## Objectif final
 
-## Auth Flow
+Transformer L1 DataLab en plateforme SaaS IA premium de predictive analytics footballistique :
 
-* JWT access token
-* protected routes
-* axios interceptors
-* auto refresh futur
-
----
-
-# Performance
-
-## Priorités
-
-* lazy loading
-* route splitting
-* image optimization
-* animation GPU accelerated
-* mobile first
-
----
-
-# Mobile Experience
-
-Le design doit être :
-
-* responsive
-* tactile
-* fluide
-* minimaliste
-* performant sur mobile
-
----
-
-# Environnement Docker & Déploiement
-
-## Architecture Actuelle (Production)
-
-Le Frontend est packagé via un `Dockerfile` multi-stage optimisé pour la production :
-1. **Build Stage** : Compile l'application Vue.js/Vite en fichiers statiques.
-2. **Serve Stage** : Utilise Nginx pour servir les assets de manière ultra-performante sur le port 80.
-
-Dans le `docker-compose.yml`, le service `frontend` ne monte **pas** de volume local. Cela garantit une immutabilité parfaite en production (chaque modification de code nécessite un `docker compose build frontend`).
-
-## Développement Local (Hot Reload)
-
-Pour bénéficier du Hot Module Replacement (HMR) pendant le design de l'UI :
-* **Option 1 (Recommandée)** : Lancer Vite nativement sur votre Mac via `npm run dev` dans le dossier `services/frontend/`.
-* **Option 2** : Écrire un `docker-compose.override.yml` pour y monter le volume local (`./services/frontend:/app`) et utiliser l'image de node en mode dev.
-
----
-
-# Objectif Final
-
-Transformer L1 DataLab en :
-> une plateforme SaaS IA premium de predictive analytics footballistique.
-
-Le frontend doit donner l’impression :
-
-* d’un vrai produit startup,
-* d’un SaaS moderne,
-* d’une plateforme AI-native,
-* et non d’un simple projet étudiant.
+- Vrai produit startup, pas projet étudiant
+- AI-native (Oracle, Neural Core, explainability)
+- Identité visuelle cohérente (Sunset Mystique + Liquidglass)
+- Socle données clubs typé pour RAG, mood engine et analytics
