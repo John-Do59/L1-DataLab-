@@ -1,6 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '../api/axios'
+import type { SubscriptionTier } from '../features/pricing/plans'
+
+const TIER_STORAGE_KEY = 'subscription_tier'
+
+function readStoredTier(): SubscriptionTier {
+  const raw = localStorage.getItem(TIER_STORAGE_KEY)
+  if (raw === 'pro' || raw === 'max' || raw === 'free') return raw
+  return 'free'
+}
 
 interface User {
   id: number
@@ -11,8 +20,14 @@ interface User {
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('access_token'))
   const user = ref<User | null>(null)
+  const subscriptionTier = ref<SubscriptionTier>(readStoredTier())
 
   const isAuthenticated = computed(() => !!token.value)
+
+  function setSubscriptionTier(tier: SubscriptionTier) {
+    subscriptionTier.value = tier
+    localStorage.setItem(TIER_STORAGE_KEY, tier)
+  }
 
   async function login(username: string, password: string) {
     // FastAPI OAuth2 requiert un form-urlencoded
@@ -65,7 +80,9 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     token.value = null
     user.value = null
+    subscriptionTier.value = 'free'
     localStorage.removeItem('access_token')
+    localStorage.removeItem(TIER_STORAGE_KEY)
   }
 
   async function initAuth() {
@@ -74,5 +91,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { token, user, isAuthenticated, login, logout, fetchUser, register, initAuth }
+  return {
+    token,
+    user,
+    subscriptionTier,
+    isAuthenticated,
+    login,
+    logout,
+    fetchUser,
+    register,
+    initAuth,
+    setSubscriptionTier,
+  }
 })

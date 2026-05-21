@@ -91,11 +91,12 @@ Boot : `applyDesignTokens()` avant `initTeamLogoSystem()`.
 - Oracle RAG (SSE, RagEntity, mood)
 - Design tokens `src/theme/`
 - Messages d'erreur API
+- Pricing page (`/pricing`, `src/features/pricing/`)
 
 ### 🔜 À venir
 
 - Merger `team-colors` + `pgvector` branches
-- Pricing page
+- Stripe Checkout + Customer Portal
 - JWT refresh
 - Tests E2E Playwright
 - Migration composants 100 % tokens CSS (réduire Tailwind hardcodé)
