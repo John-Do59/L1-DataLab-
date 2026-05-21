@@ -189,12 +189,14 @@ await streamRagQuestion(question, {
 
 ## 9. Branches fonctionnelles
 
-| Branche | Feature |
-|---------|---------|
-| `feature/rag-streaming-memory` | RAG SSE, mémoire, mood engine |
-| `feature/team-colors-visual-system` | Glows dynamiques par club |
-| `feature/pgvector-semantic-rag` | Embeddings 768D + pgvector (backend) |
-| `feature/design-tokens` | `src/theme/` design system |
+Toutes les branches de fonctionnalités ont été fusionnées et consolidées de manière transparente dans la branche maîtresse de design/intégration **`feature/design-tokens`**, qui est actuellement la branche la plus à jour et complète du projet.
+
+| Branche | Feature | Statut |
+|---------|---------|--------|
+| `feature/rag-streaming-memory` | RAG SSE, mémoire, mood engine | ✅ Fusionné |
+| `feature/team-colors-visual-system` | Glows dynamiques par club | ✅ Fusionné |
+| `feature/pgvector-semantic-rag` | Embeddings 768D + pgvector (backend) | ✅ Fusionné |
+| `feature/design-tokens` | `src/theme/` design system + intégration complète | 🏆 **Branche de référence** |
 
 ---
 

@@ -92,10 +92,10 @@ Boot : `applyDesignTokens()` avant `initTeamLogoSystem()`.
 - Design tokens `src/theme/`
 - Messages d'erreur API
 - Pricing page (`/pricing`, `src/features/pricing/`)
+- Fusion et consolidation complète des branches `feature/team-colors-visual-system` et `feature/pgvector-semantic-rag` dans la branche de base unifiée `feature/design-tokens`.
 
 ### 🔜 À venir
 
-- Merger `team-colors` + `pgvector` branches
 - Stripe Checkout + Customer Portal
 - JWT refresh
 - Tests E2E Playwright

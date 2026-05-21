@@ -18,13 +18,13 @@ Inspirations : *Linear*, *Vercel*, *Anthropic*, *Perplexity*.
 
 | Pilier | Description | Statut |
 |--------|-------------|--------|
-| **Liquidglass** | Cartes translucides, bordures lumineuses, glows | ✅ |
-| **Design tokens** | `src/theme/` — couleurs, glass, motion, oracle | ✅ branche `feature/design-tokens` |
-| **Neural Core** | Prédiction idle / loading / reveal | ✅ |
-| **AI Oracle** | RAG, mémoire, mood engine, SSE | ✅ |
-| **Logos dynamiques** | Registre, cache, preload boot | ✅ |
-| **Couleurs clubs** | `getTeamColors()` → glows contextuels | ✅ branche `feature/team-colors-visual-system` |
-| **RAG sémantique** | pgvector 768D + nomic-embed | ✅ branche `feature/pgvector-semantic-rag` |
+| **Liquidglass** | Cartes translucides, bordures lumineuses, glows | ✅ Intégré |
+| **Design tokens** | `src/theme/` — couleurs, glass, motion, oracle | 🏆 Branche `feature/design-tokens` (Master) |
+| **Neural Core** | Prédiction idle / loading / reveal | ✅ Intégré |
+| **AI Oracle** | RAG, mémoire, mood engine, SSE | ✅ Intégré |
+| **Logos dynamiques** | Registre, cache, preload boot | ✅ Intégré |
+| **Couleurs clubs** | `getTeamColors()` → glows contextuels | ✅ Fusionné dans `feature/design-tokens` |
+| **RAG sémantique** | pgvector 768D + nomic-embed | ✅ Fusionné dans `feature/design-tokens` |
 
 Positionnement : **Agentic Analytics as a Service**.
 
