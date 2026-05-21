@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import ProbabilityBar from './ProbabilityBar.vue'
+import { getTeamVisuals } from '../../utils/teamVisuals'
 
-defineProps<{
+const props = defineProps<{
   homeTeam: string
   awayTeam: string
   homeLogo?: string
@@ -12,10 +14,29 @@ defineProps<{
   awayScore?: number | null
   prediction?: { probH: number, probD: number, probA: number }
 }>()
+
+const homeVisuals = computed(() => getTeamVisuals(props.homeTeam))
+const awayVisuals = computed(() => getTeamVisuals(props.awayTeam))
+const cardStyle = computed(() => ({
+  ...(homeVisuals.value?.cssVars ?? {}),
+  ...(awayVisuals.value
+    ? { '--tv-away-primary': awayVisuals.value.primary }
+    : {}),
+}))
 </script>
 
 <template>
-  <div class="liquid-glass rounded-2xl p-6 border border-sunset-primary/10 hover:border-sunset-secondary/40 transition-all duration-500 liquid-glow-hover cursor-pointer group h-full flex flex-col justify-between relative overflow-hidden">
+  <div
+    class="liquid-glass rounded-2xl p-6 border transition-all duration-500 liquid-glow-hover cursor-pointer group h-full flex flex-col justify-between relative overflow-hidden"
+    :style="[
+      cardStyle,
+      {
+        borderColor: homeVisuals ? 'var(--tv-border)' : undefined,
+        boxShadow: homeVisuals ? '0 0 28px var(--tv-glow)' : undefined,
+      },
+    ]"
+    :class="!homeVisuals ? 'border-sunset-primary/10 hover:border-sunset-secondary/40' : ''"
+  >
     
     <!-- Subtle background pattern on hover -->
     <div class="absolute inset-0 bg-gradient-to-br from-sunset-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
@@ -27,8 +48,16 @@ defineProps<{
     
     <div class="flex justify-between items-center gap-2 relative z-10">
       <div class="flex flex-col items-center gap-2 w-1/3">
-        <img v-if="homeLogo" :src="homeLogo" class="w-10 h-10 object-contain drop-shadow-md" />
-        <span class="text-white font-medium text-xs text-center leading-tight">{{ homeTeam }}</span>
+        <img
+          v-if="homeLogo"
+          :src="homeLogo"
+          class="w-10 h-10 object-contain"
+          :style="homeVisuals ? { filter: homeVisuals.glowFilter } : undefined"
+        />
+        <span
+          class="font-medium text-xs text-center leading-tight"
+          :style="homeVisuals ? { color: homeVisuals.primary } : { color: 'white' }"
+        >{{ homeTeam }}</span>
       </div>
       
       <div class="w-1/3 flex justify-center">
@@ -41,8 +70,16 @@ defineProps<{
       </div>
       
       <div class="flex flex-col items-center gap-2 w-1/3">
-        <img v-if="awayLogo" :src="awayLogo" class="w-10 h-10 object-contain drop-shadow-md" />
-        <span class="text-white font-medium text-xs text-center leading-tight">{{ awayTeam }}</span>
+        <img
+          v-if="awayLogo"
+          :src="awayLogo"
+          class="w-10 h-10 object-contain"
+          :style="awayVisuals ? { filter: awayVisuals.glowFilter } : undefined"
+        />
+        <span
+          class="font-medium text-xs text-center leading-tight"
+          :style="awayVisuals ? { color: awayVisuals.primary } : { color: 'white' }"
+        >{{ awayTeam }}</span>
       </div>
     </div>
     

@@ -7,6 +7,7 @@ import {
   type EntityMood,
   type RagStreamMeta,
 } from '../api/ragStream'
+import { getOracleAccent } from '../utils/teamVisuals'
 
 interface ChatMessage {
   id: string
@@ -170,6 +171,15 @@ const moodBadgeClass = computed(() => {
   if (m === 'glitch') return 'text-red-300 border-red-400/40 bg-red-500/10'
   return 'text-amber-300 border-amber-400/40 bg-amber-500/10'
 })
+
+const oracleContextText = computed(() => {
+  const lastUser = [...messages.value].reverse().find((m) => m.role === 'user')
+  return [lastUser?.content, input.value].filter(Boolean).join(' ')
+})
+
+const oracleAccent = computed(() =>
+  getOracleAccent(entityMood.value, oracleContextText.value),
+)
 </script>
 
 <template>
@@ -210,6 +220,7 @@ const moodBadgeClass = computed(() => {
         :state="displayState"
         :mood="entityMood"
         :stream-intensity="streamIntensity"
+        :accent-vars="oracleAccent.cssVars"
       />
     </section>
 

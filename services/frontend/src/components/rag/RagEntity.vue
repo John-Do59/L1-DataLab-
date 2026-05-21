@@ -14,8 +14,15 @@ const props = withDefaults(
     /** Même taille que RAG par défaut ; ex. `280px` pour la vue prédiction */
     haloSize?: string
     showStatus?: boolean
+    /** CSS vars équipe / mood (--tv-primary, --tv-glow, …) */
+    accentVars?: Record<string, string>
   }>(),
-  { mood: 'stable', streamIntensity: 0, showStatus: true }
+  {
+    mood: 'stable',
+    streamIntensity: 0,
+    showStatus: true,
+    accentVars: () => ({}),
+  }
 )
 
 const stateLabels: Record<RagEntityState, string> = {
@@ -42,7 +49,8 @@ const moodPalette = computed(() => tokens.oracle.moods[props.mood])
 const shellStyle = computed(() => {
   const m = moodPalette.value
   const intensity = Math.min(1, Math.max(0, props.streamIntensity))
-  return {
+  
+  const base = {
     '--vortex-primary': m.primary,
     '--vortex-secondary': m.secondary,
     '--vortex-glow': m.glow,
@@ -50,6 +58,21 @@ const shellStyle = computed(() => {
     '--vortex-accent': tokens.colors.brand.accent,
     '--stream-intensity': String(intensity),
   } as Record<string, string>
+  
+  if (props.accentVars) {
+    if (props.accentVars['--tv-primary']) {
+      base['--vortex-primary'] = props.accentVars['--tv-primary']
+    }
+    if (props.accentVars['--tv-secondary']) {
+      base['--vortex-secondary'] = props.accentVars['--tv-secondary']
+    }
+    if (props.accentVars['--tv-glow']) {
+      base['--vortex-glow'] = props.accentVars['--tv-glow']
+    }
+    Object.assign(base, props.accentVars)
+  }
+  
+  return base
 })
 
 const haloIntensity = computed(() => {
@@ -121,13 +144,8 @@ const haloIntensity = computed(() => {
 .rag-entity-aura--secondary {
   width: 60%;
   height: 50%;
-  background: color-mix(in srgb, var(--vortex-accent) 25%, transparent);
+  background: color-mix(in srgb, var(--vortex-secondary, var(--vortex-accent)) 25%, transparent);
   opacity: 0.35;
-}
-
-.oracle-halo {
-  position: relative;
-  z-index: 1;
 }
 
 .rag-entity-status {
@@ -246,5 +264,4 @@ const haloIntensity = computed(() => {
     transform: scale(0.85);
   }
 }
-
 </style>
