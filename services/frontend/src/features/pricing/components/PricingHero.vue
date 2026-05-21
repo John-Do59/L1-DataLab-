@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import NeuralCore from '../../../components/prediction/NeuralCore.vue'
+import RagEntity from '../../../components/rag/RagEntity.vue'
 import type { PricingCtaAction } from '../composables/usePricingCta'
 
 defineProps<{
@@ -19,7 +19,7 @@ defineProps<{
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(90vw,520px)] h-[min(90vw,520px)] rounded-full bg-sunset-primary/20 blur-[100px] pointer-events-none animate-pulse-slow" />
 
     <div class="relative z-10 mb-8 scale-90 md:scale-100">
-      <NeuralCore state="idle" />
+      <RagEntity state="idle" :showStatus="false" />
     </div>
 
     <p class="relative z-10 text-[10px] md:text-xs font-bold tracking-[0.35em] uppercase text-sunset-primary mb-3">
