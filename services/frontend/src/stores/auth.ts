@@ -68,5 +68,11 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('access_token')
   }
 
-  return { token, user, isAuthenticated, login, logout, fetchUser, register }
+  async function initAuth() {
+    if (token.value && !user.value) {
+      await fetchUser()
+    }
+  }
+
+  return { token, user, isAuthenticated, login, logout, fetchUser, register, initAuth }
 })
