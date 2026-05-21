@@ -74,14 +74,17 @@
       <div class="flex items-center justify-between w-full max-w-[1250px] relative z-10 gap-4 h-[500px]">
         
         <!-- Left Panel: Home Team -->
-        <div class="w-[340px] h-[480px] relative rounded-3xl border border-cyan-500/50 bg-[#060b19]/80 backdrop-blur-md flex flex-col items-center p-6 shadow-[0_0_50px_rgba(34,211,238,0.15),_inset_0_0_20px_rgba(34,211,238,0.1)] overflow-hidden">
+        <div
+          class="w-[340px] h-[480px] relative rounded-3xl border backdrop-blur-md flex flex-col items-center p-6 overflow-hidden transition-all duration-500"
+          :style="homeVisuals.panelStyle"
+        >
           <div class="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10" style="clip-path: polygon(100% 0, 0 0, 100% 100%);"></div>
           <div class="absolute bottom-0 left-0 w-24 h-24 bg-cyan-500/10" style="clip-path: polygon(0 100%, 0 0, 100% 100%);"></div>
 
           <!-- Logo & Dropdown -->
           <div class="relative w-32 h-32 mt-4 mb-4">
-             <div class="absolute inset-0 bg-cyan-500/20 blur-[30px] rounded-full"></div>
-             <img v-if="homeTeamObj?.logo" :src="homeTeamObj.logo" class="relative z-10 w-full h-full object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]" />
+             <div class="absolute inset-0 blur-[30px] rounded-full" :style="{ background: `color-mix(in srgb, ${homeVisuals.primary} 25%, transparent)` }"></div>
+             <img v-if="homeTeamObj?.logo" :src="homeTeamObj.logo" class="relative z-10 w-full h-full object-contain" :style="{ filter: homeVisuals.glowFilter }" />
              <div v-else class="relative z-10 w-full h-full border-2 border-dashed border-cyan-500/50 rounded-full flex items-center justify-center text-cyan-500 font-bold">Logo</div>
           </div>
           
@@ -102,7 +105,7 @@
           <!-- Stats -->
           <div class="w-full text-center space-y-4 transition-opacity duration-500" :class="predictionState === 'reveal' ? 'opacity-100' : 'opacity-20'">
             <div>
-              <div class="text-[40px] leading-none font-black text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]">{{ result.homeProb ? (result.homeProb * 100).toFixed(1) : '--' }}%</div>
+              <div class="text-[40px] leading-none font-black" :style="{ color: homeVisuals.primary, textShadow: `0 0 10px ${homeVisuals.primary}` }">{{ result.homeProb ? (result.homeProb * 100).toFixed(1) : '--' }}%</div>
               <div class="text-[10px] text-cyan-200/50 uppercase tracking-widest mt-1">Probabilité de Victoire</div>
             </div>
             <div class="h-px w-full bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent"></div>
@@ -154,14 +157,17 @@
         </div>
 
         <!-- Right Panel: Away Team -->
-        <div class="w-[340px] h-[480px] relative rounded-3xl border border-purple-500/50 bg-[#060b19]/80 backdrop-blur-md flex flex-col items-center p-6 shadow-[0_0_50px_rgba(168,85,247,0.15),_inset_0_0_20px_rgba(168,85,247,0.1)] overflow-hidden">
+        <div
+          class="w-[340px] h-[480px] relative rounded-3xl border backdrop-blur-md flex flex-col items-center p-6 overflow-hidden transition-all duration-500"
+          :style="awayVisuals.panelStyle"
+        >
           <div class="absolute top-0 left-0 w-24 h-24 bg-purple-500/10" style="clip-path: polygon(0 0, 100% 0, 0 100%);"></div>
           <div class="absolute bottom-0 right-0 w-24 h-24 bg-purple-500/10" style="clip-path: polygon(100% 100%, 0 100%, 100% 0);"></div>
 
           <!-- Logo & Dropdown -->
           <div class="relative w-32 h-32 mt-4 mb-4">
-             <div class="absolute inset-0 bg-purple-500/20 blur-[30px] rounded-full"></div>
-             <img v-if="awayTeamObj?.logo" :src="awayTeamObj.logo" class="relative z-10 w-full h-full object-contain drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]" />
+             <div class="absolute inset-0 blur-[30px] rounded-full" :style="{ background: `color-mix(in srgb, ${awayVisuals.primary} 25%, transparent)` }"></div>
+             <img v-if="awayTeamObj?.logo" :src="awayTeamObj.logo" class="relative z-10 w-full h-full object-contain" :style="{ filter: awayVisuals.glowFilter }" />
              <div v-else class="relative z-10 w-full h-full border-2 border-dashed border-purple-500/50 rounded-full flex items-center justify-center text-purple-500 font-bold">Logo</div>
           </div>
           
@@ -260,6 +266,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api/axios'
 import NeuralCore from '../components/prediction/NeuralCore.vue'
+import { buildTeamVisualStyle, getTeamVisuals } from '../utils/teamVisuals'
 
 interface Team {
   club_name: string
@@ -339,6 +346,24 @@ const homeTeamObj = computed(() => teams.value.find(t => t.club_name === homeTea
 const awayTeamObj = computed(() => teams.value.find(t => t.club_name === awayTeam.value))
 
 const canPredict = computed(() => homeTeam.value && awayTeam.value && homeTeam.value !== awayTeam.value)
+
+const FALLBACK_HOME = buildTeamVisualStyle({
+  primary: '#22d3ee',
+  secondary: '#0891b2',
+  accent: '#67e8f9',
+})
+const FALLBACK_AWAY = buildTeamVisualStyle({
+  primary: '#a855f7',
+  secondary: '#7c3aed',
+  accent: '#c084fc',
+})
+
+const homeVisuals = computed(
+  () => getTeamVisuals(homeTeam.value) ?? FALLBACK_HOME,
+)
+const awayVisuals = computed(
+  () => getTeamVisuals(awayTeam.value) ?? FALLBACK_AWAY,
+)
 
 const runPrediction = async () => {
   savedToHistory.value = false
