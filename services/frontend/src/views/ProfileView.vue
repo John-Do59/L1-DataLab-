@@ -75,6 +75,13 @@ const handleLogout = () => {
         </button>
         <button
           type="button"
+          @click="router.push('/rag')"
+          class="px-5 py-2.5 bg-gradient-to-r from-sunset-primary/30 to-sunset-secondary/20 text-sunset-accent font-semibold rounded-xl border border-sunset-secondary/40 hover:shadow-[0_0_15px_rgba(200,118,255,0.25)] transition-all"
+        >
+          Agent RAG
+        </button>
+        <button
+          type="button"
           @click="router.push('/ai-insights')"
           class="px-5 py-2.5 liquid-glass text-sunset-secondary font-medium rounded-xl border border-white/10 hover:text-sunset-accent transition-all"
         >

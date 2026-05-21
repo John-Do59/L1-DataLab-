@@ -1,4 +1,4 @@
-from sqlalchemy import String, Integer, Float, DateTime, ForeignKey, JSON
+from sqlalchemy import String, Integer, Float, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from typing import List, Optional
@@ -14,6 +14,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     predictions: Mapped[List["Prediction"]] = relationship(back_populates="user")
+    rag_conversations: Mapped[List["RagConversation"]] = relationship(back_populates="user")
 
 class Team(Base):
     __tablename__ = "teams"
@@ -69,3 +70,38 @@ class Prediction(Base):
 
     user: Mapped["User"] = relationship(back_populates="predictions")
     match: Mapped["Match"] = relationship("Match")
+
+
+class RagConversation(Base):
+    __tablename__ = "rag_conversations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200), default="Nouvelle analyse")
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="")
+    summary_embedding: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    user: Mapped["User"] = relationship(back_populates="rag_conversations")
+    messages: Mapped[List["RagMessage"]] = relationship(
+        back_populates="conversation", cascade="all, delete-orphan"
+    )
+
+
+class RagMessage(Base):
+    __tablename__ = "rag_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("rag_conversations.id"), index=True
+    )
+    role: Mapped[str] = mapped_column(String(20))  # user | assistant | system
+    content: Mapped[str] = mapped_column(Text)
+    embedding_json: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    message_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    conversation: Mapped["RagConversation"] = relationship(back_populates="messages")

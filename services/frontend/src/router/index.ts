@@ -53,6 +53,12 @@ const router = createRouter({
       name: 'profile',
       component: () => import('../views/ProfileView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/rag',
+      name: 'rag',
+      component: () => import('../views/RagView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })

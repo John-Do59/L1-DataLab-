@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
@@ -6,9 +7,12 @@ from datetime import timedelta
 from typing import List
 
 
-from .core.database import get_db
+from .core.database import get_db, AsyncSessionLocal
 from .core.security import verify_password, create_access_token, SECRET_KEY, ALGORITHM
-from .schemas.schemas import UserCreate, UserResponse, Token, TokenData, PredictionResponse, MatchResponse, PredictionHistoryResponse
+from .schemas.schemas import (
+    UserCreate, UserResponse, Token, TokenData, PredictionResponse, MatchResponse,
+    PredictionHistoryResponse, RagQuestionRequest, RagQuestionResponse,
+)
 from .repositories.user_repository import UserRepository
 from .repositories.team_repository import TeamRepository
 from .repositories.match_repository import MatchRepository
@@ -17,6 +21,7 @@ from .services.ml_client import ml_client
 from .services.feature_service import FeatureService
 from .services.lfp_client import lfp_client
 from .services.prediction_history import prediction_to_history
+from .rag.orchestrator import RagOrchestrator
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Ligue 1 Professional API", version="2.0.0")
@@ -284,4 +289,53 @@ async def get_top_scorers():
     """
     data = await lfp_client.get_top_scorers()
     return data if data else []
+
+
+@app.post("/insights/question", response_model=RagQuestionResponse)
+async def ask_insight(
+    body: RagQuestionRequest,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Agent RAG avec mémoire conversationnelle."""
+    orchestrator = RagOrchestrator(db)
+    result = await orchestrator.answer_once(
+        current_user.id,
+        body.question.strip(),
+        body.conversation_id,
+    )
+    return RagQuestionResponse(**result)
+
+
+@app.post("/insights/question/stream")
+async def ask_insight_stream(
+    body: RagQuestionRequest,
+    current_user=Depends(get_current_user),
+):
+    """Flux SSE — tokens progressifs + métadonnées mood/confidence."""
+
+    async def event_generator():
+        async with AsyncSessionLocal() as session:
+            orchestrator = RagOrchestrator(session)
+            try:
+                async for chunk in orchestrator.stream_answer(
+                    current_user.id,
+                    body.question.strip(),
+                    body.conversation_id,
+                ):
+                    yield chunk
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
