@@ -45,7 +45,7 @@ onUnmounted(() => document.removeEventListener('click', closeMenuOnClickOutside)
         
         <div class="hidden md:flex gap-6 text-sm font-medium text-sunset-secondary/80">
           <RouterLink to="/" class="hover:text-sunset-accent transition-colors">Home</RouterLink>
-          <RouterLink to="/pricing" class="hover:text-sunset-accent transition-colors">Pricing</RouterLink>
+          <RouterLink to="/pricing" class="hover:text-sunset-accent transition-colors">Tarifs</RouterLink>
           <template v-if="authStore.isAuthenticated">
             <RouterLink to="/dashboard" class="hover:text-sunset-accent transition-colors">Dashboard</RouterLink>
             <RouterLink to="/prediction" class="hover:text-sunset-accent transition-colors">Predictions</RouterLink>
