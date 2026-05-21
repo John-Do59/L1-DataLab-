@@ -10,8 +10,10 @@ const props = withDefaults(
     state: RagEntityState
     mood?: EntityMood
     streamIntensity?: number
+    /** CSS vars équipe / mood (--tv-primary, --tv-glow, …) */
+    accentVars?: Record<string, string>
   }>(),
-  { mood: 'stable', streamIntensity: 0 }
+  { mood: 'stable', streamIntensity: 0, accentVars: () => ({}) }
 )
 
 const stateLabels: Record<RagEntityState, string> = {
@@ -35,6 +37,7 @@ const statusText = computed(() => {
 
 const glowStyle = computed(() => ({
   '--stream-intensity': String(Math.min(1, Math.max(0, props.streamIntensity))),
+  ...props.accentVars,
 }))
 </script>
 
@@ -125,7 +128,8 @@ const glowStyle = computed(() => ({
   position: absolute;
   inset: 0.5rem;
   border-radius: 2.25rem;
-  border: 1px solid rgba(200, 118, 255, 0.25);
+  border: 1px solid var(--tv-border, rgba(200, 118, 255, 0.25));
+  box-shadow: 0 0 36px var(--tv-glow, rgba(114, 50, 242, 0.2));
   pointer-events: none;
   z-index: 1;
   transition: box-shadow 0.4s ease, border-color 0.4s ease;
@@ -185,13 +189,13 @@ const glowStyle = computed(() => ({
 .rag-entity-aura--primary {
   width: 70%;
   height: 55%;
-  background: rgba(114, 50, 242, 0.35);
+  background: var(--tv-glow, rgba(114, 50, 242, 0.35));
 }
 
 .rag-entity-aura--secondary {
   width: 50%;
   height: 40%;
-  background: rgba(246, 179, 229, 0.2);
+  background: color-mix(in srgb, var(--tv-secondary, #f6b3e5) 35%, transparent);
 }
 
 .rag-entity-status {

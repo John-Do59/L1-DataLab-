@@ -5,6 +5,7 @@ import api from '../api/axios'
 import ProbabilityBar from '../components/dashboard/ProbabilityBar.vue'
 import { useAuthStore } from '../stores/auth'
 import { hydrateStandingsLogos, resolveTeamLogo } from '../utils/teamLogos'
+import TeamGlow from '../components/ui/TeamGlow.vue'
 import bgStadium2 from '../assets/backgrounds/ballon-entite.png'
 
 const authStore = useAuthStore()
@@ -404,15 +405,15 @@ const getInitials = (name: string) => {
           
           <!-- Home -->
           <div class="flex flex-col items-center w-5/12 gap-3">
-            <div class="w-14 h-14 rounded-full bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-300 p-2">
+            <TeamGlow :team-name="pred.match.home_team.name" size="lg" class="group-hover:scale-105 transition-transform duration-300">
               <img
                 v-if="pred.match.home_team.logo"
                 :src="pred.match.home_team.logo"
                 :alt="pred.match.home_team.name"
-                class="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(34,211,238,0.35)]"
+                class="w-full h-full object-contain p-1"
               />
               <div v-else class="text-xs text-white/50 font-bold font-mono">{{ getInitials(pred.match.home_team.name) }}</div>
-            </div>
+            </TeamGlow>
             <span class="text-xs text-white font-bold tracking-wide text-center leading-snug truncate w-full">{{ pred.match.home_team.name }}</span>
             <span v-if="pred.match.home_team.elo_rating" class="text-[9px] text-white/30 font-mono">Elo {{ Math.round(pred.match.home_team.elo_rating) }}</span>
           </div>
@@ -432,15 +433,15 @@ const getInitials = (name: string) => {
 
           <!-- Away -->
           <div class="flex flex-col items-center w-5/12 gap-3">
-            <div class="w-14 h-14 rounded-full bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-300 p-2">
+            <TeamGlow :team-name="pred.match.away_team.name" size="lg" class="group-hover:scale-105 transition-transform duration-300">
               <img
                 v-if="pred.match.away_team.logo"
                 :src="pred.match.away_team.logo"
                 :alt="pred.match.away_team.name"
-                class="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.35)]"
+                class="w-full h-full object-contain p-1"
               />
               <div v-else class="text-xs text-white/50 font-bold font-mono">{{ getInitials(pred.match.away_team.name) }}</div>
-            </div>
+            </TeamGlow>
             <span class="text-xs text-white font-bold tracking-wide text-center leading-snug truncate w-full">{{ pred.match.away_team.name }}</span>
             <span v-if="pred.match.away_team.elo_rating" class="text-[9px] text-white/30 font-mono">Elo {{ Math.round(pred.match.away_team.elo_rating) }}</span>
           </div>
