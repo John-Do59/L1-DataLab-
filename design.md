@@ -2,105 +2,105 @@
 
 ## 1. Vision stratégique
 
-Le **L1 DataLab Studio** n'est pas un simple projet étudiant ni un dashboard administratif classique. Il s'agit d'une plateforme d'**Analytics Prédictif Premium** qui doit projeter l'image d'une véritable startup AI (Machine Learning as a Service).
+Le **L1 DataLab Studio** est une plateforme d'**Analytics Prédictif Premium** (Machine Learning as a Service) pour la Ligue 1.
 
-Pour le jury RNCP, les recruteurs ou le portfolio GitHub, le visuel doit immédiatement transmettre :
+Objectifs perçus :
 
-- Profondeur technique (ML, Data Engineering, infrastructure distribuée)
-- Intelligence (temps réel, agents LLM, RAG, streaming SSE)
-- Qualité perçue (premium, fluide, exigeant)
+- Profondeur technique (ML, Data Engineering, RAG, pgvector)
+- Intelligence (temps réel, Oracle LLM, streaming SSE)
+- Qualité premium (Liquidglass, identité sportive par club)
 
-Inspirations directes : *Linear*, *Vercel*, *Anthropic*, *Stripe*, *Perplexity*.
+Inspirations : *Linear*, *Vercel*, *Anthropic*, *Perplexity*.
 
 ---
 
 ## 2. Identité produit IA sportive premium
 
-L'ensemble du produit combine désormais :
+| Pilier | Description | Statut |
+|--------|-------------|--------|
+| **Liquidglass** | Cartes translucides, bordures lumineuses, glows | ✅ |
+| **Design tokens** | `src/theme/` — couleurs, glass, motion, oracle | ✅ branche `feature/design-tokens` |
+| **Neural Core** | Prédiction idle / loading / reveal | ✅ |
+| **AI Oracle** | RAG, mémoire, mood engine, SSE | ✅ |
+| **Logos dynamiques** | Registre, cache, preload boot | ✅ |
+| **Couleurs clubs** | `getTeamColors()` → glows contextuels | ✅ branche `feature/team-colors-visual-system` |
+| **RAG sémantique** | pgvector 768D + nomic-embed | 🔜 branche `feature/pgvector-semantic-rag` |
 
-| Pilier | Description |
-|--------|-------------|
-| **Liquidglass** | Cartes translucides, bordures lumineuses, glows directionnels |
-| **Neural Core** | Animation centrale de prédiction (états idle / loading / reveal) |
-| **AI Oracle (RAG)** | Assistant conversationnel avec mémoire, mood engine, SSE |
-| **Logos dynamiques** | Registre Ligue 1, cache mémoire, préchargement au boot |
-| **Fallbacks résilients** | Assets locaux si API/LFP indisponibles |
-
-Le positionnement visuel : **Agentic Analytics as a Service** pour la Ligue 1.
-
----
-
-## 3. Palette « Sunset Mystique »
-
-- **Deep Navy** (`#010108`) : fond principal, mystérieux, profond
-- **Midnight Purple** (`#20115b`) : structure sans gris basique
-- **Electric Violet** (`#7232f2`) : éléments interactifs
-- **Neon Lilas** (`#c876ff`) : glows, lueurs internes, survols
-- **Sunset Pink** (`#f6b3e5`) : touches finales, rappel du ciel couchant
-
-Couleurs secondaires contextuelles par club (registre `Ligue1Team.colors`) pour glows dynamiques futurs.
+Positionnement : **Agentic Analytics as a Service**.
 
 ---
 
-## 4. Direction artistique : Liquidglass
+## 3. Design token system
 
-Évolution du *Glassmorphism* vers le **Liquidglass** :
+Structure cible (`services/frontend/src/theme/`) :
 
-- **Bordures lumineuses** : dégradés fins (`border-white/10`, `sunset-primary/30`)
-- **Glow directionnel** : flous colorés sous les composants (`blur-[100px]`)
-- **Minimalisme** : peu de bordures dures, espace négatif, typographie aérée
-- **Focus** : qualité > quantité
-
-### États visuels IA
-
-- **Idle** : interface en attente, opacité réduite
-- **Loading** : pulse, barre de progression, « Analyse en cours… »
-- **Reveal** : résultat affiché, confiance, explainability, bannière historique
-
----
-
-## 5. Animation & motion design (GSAP)
-
-**GSAP + ScrollTrigger** sur la landing :
-
-- **Pinning** : éléments centraux fixes pendant le scroll
-- **Scrubbing** : animation liée à la position du scroll
-- **Constellation tunnel** : logos Ligue 1 en profondeur (starfield)
-- **Micro-interactions** : hover profondeur, loading élégants
-
-Règles : pas d'effets « gaming », pas de zoom agressif, parallax léger uniquement.
-
----
-
-## 6. Système logos & registre équipes
-
-### Registre canonique (`teamRegistry.ts`)
-
-Chaque club Ligue 1 expose :
-
-```typescript
-type Ligue1Team = {
-  id: string              // ex. 'psg', 'om'
-  canonicalName: string   // ex. 'Paris Saint-Germain'
-  shortName: string       // ex. 'PSG'
-  aliases: string[]       // noms API, LFP, backend
-  logo: string            // asset local bundlé
-  colors: TeamColors      // primary, secondary, accent
-}
+```text
+theme/
+├── tokens.ts      # Agrégation
+├── colors.ts      # Sunset Mystique
+├── glass.ts       # Opacités, blur, bordures
+├── motion.ts      # Timings & easing
+├── oracle.ts      # Moods Oracle (stable, risky, uncertain, glitch)
+├── teams.ts       # Pont registre Ligue 1
+└── applyTheme.ts  # Injection CSS variables
 ```
 
-### Cache & préchargement (`teamLogos.ts`)
+**Bénéfices** : cohérence visuelle, maintenance centralisée (`applyDesignTokens()` une fois), scalabilité nouvelles pages/composants.
 
-- `logoCache: Map<string, string>` — évite recalculs et rerenders
-- `preloadTeamLogos()` — `new Image()` au boot pour transitions fluides
-- `hydrateStandingsLogos()` — un seul appel `/standings`, jamais répété par vue
-- Résolution : cache → API → LFP → registre local
-
-Usages futurs : RAG, mood engine, analytics, animations par club.
+Voir [`frontend-implementation.md`](./frontend-implementation.md).
 
 ---
 
-## 7. Parcours utilisateur clés
+## 4. Palette « Sunset Mystique »
+
+| Token | Hex | Usage |
+|-------|-----|-------|
+| Deep Navy | `#010108` | Fond principal |
+| Midnight Purple | `#20115b` | Structure |
+| Electric Violet | `#7232f2` | Interactif |
+| Neon Lilas | `#c876ff` | Glows |
+| Sunset Pink | `#f6b3e5` | Accents |
+
+### Couleurs clubs (registre `Ligue1Team.colors`)
+
+Exemples d'identité sportive dynamique :
+
+| Club | Primary | Rendu |
+|------|---------|-------|
+| PSG | `#004170` | Bleu électrique |
+| OM | `#009FE3` | Cyan glow |
+| Lens | `#D2001F` | Rouge / orange |
+| Monaco | `#E2001A` | Rouge profond |
+
+Branchées sur : cartes historique, panneaux prédiction, MatchCard, Oracle (`getOracleAccent`).
+
+---
+
+## 5. Liquidglass & états IA
+
+- Bordures : `border-white/10`, `sunset-primary/30`
+- Glow : `blur-[100px]`, variables `--glass-blur-*`
+- États Neural Core / Oracle : **idle → loading/listening → reveal/responding**
+
+---
+
+## 6. Animation (GSAP)
+
+Landing : pinning, scrub, constellation logos Ligue 1.  
+Règles : pas d'effets gaming, parallax léger, timings via `theme/motion.ts`.
+
+---
+
+## 7. Système logos
+
+- **Registre** : `data/teamRegistry.ts` (18 clubs, aliases, colors)
+- **Cache** : `logoCache` dans `teamLogos.ts`
+- **Preload** : `new Image()` au boot
+- **Hydratation** : un seul `GET /standings`
+
+---
+
+## 8. Parcours utilisateur
 
 ```mermaid
 flowchart LR
@@ -108,33 +108,26 @@ flowchart LR
   B --> C[Dashboard]
   C --> D[Prédiction]
   D --> E[Historique]
-  C --> F[AI Oracle RAG]
+  C --> F[Oracle RAG]
   C --> G[Profil]
 ```
 
-- **Prédiction** : sélection équipes, Neural Core, persistance automatique
-- **Historique** : cartes avec logos, filtres, taux de réussite
-- **RAG** : chat streamé, mémoire conversationnelle, mood/confidence
+---
+
+## 9. Principes UX
+
+1. Perception premium (pas de flicker, erreurs explicites)
+2. Feedback API clair (`formatApiError`)
+3. Auth 401 intelligente
+4. Mobile-first, GPU-friendly
 
 ---
 
-## 8. Principes UX non négociables
+## 10. Documentation design & technique
 
-1. **Perception premium** — pas de flicker logo, pas de messages d'erreur génériques
-2. **Feedback explicite** — API down, email pris, historique vide vs filtré
-3. **Auth cohérente** — intercepteur 401 intelligent (pas de redirect sur login/register)
-4. **Mobile-first** — responsive, tactile, animations GPU-friendly
-
----
-
-## 9. Niveau produit visé
-
-Le frontend dépasse le niveau « dashboard étudiant classique » :
-
-- Liquid glass + glow systems
-- AI Oracle avec streaming SSE
-- États visuels IA structurés
-- Logos dynamiques + fallbacks résilients
-- Typage strict équipes pour évolutions RAG/analytics
-
-Objectif : une **identité produit IA sportive premium** crédible en soutenance et en portfolio.
+| Document | Contenu |
+|----------|---------|
+| [`frontend-implementation.md`](./frontend-implementation.md) | Theme, logos, vues, branches |
+| [`FRONTEND-PLAN.md`](./FRONTEND-PLAN.md) | Roadmap frontend |
+| [`rag-implementation.md`](./rag-implementation.md) | Oracle RAG |
+| [`design.md`](./design.md) | Ce fichier |

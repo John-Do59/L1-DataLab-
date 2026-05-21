@@ -25,13 +25,23 @@ Plateforme industrielle de collecte et de prédiction des résultats de la Ligue
 
 ## 📚 Documentation Technique
 
-Pour approfondir le fonctionnement du système, consultez nos guides détaillés :
+### Guides d'implémentation (racine)
 
-- 🗄️ [SQLAlchemy 2.0 Async](docs/SQLALCHEMY.md) : Gestion de la base de données asynchrone.
-- ✅ [Pydantic V2](docs/PYDANTIC.md) : Validation et typage des données.
-- ⚙️ [Alembic](docs/ALEMBIC.md) : Gestion des migrations et du schéma.
-- 🧪 [Guide de Test](docs/TESTS.md) : Commandes pour valider le système distribué.
-- 🐳 [Docker Guide](DOCKER.md) : Orchestration et optimisation des images.
+| Document | Description |
+|----------|-------------|
+| [design.md](design.md) | Stratégie produit, DA Sunset Mystique, tokens |
+| [FRONTEND-PLAN.md](FRONTEND-PLAN.md) | Roadmap & architecture frontend |
+| [frontend-implementation.md](frontend-implementation.md) | Theme system, logos, vues, branches |
+| [backend-implementation.md](backend-implementation.md) | App API, auth, predict, ML |
+| [rag-implementation.md](rag-implementation.md) | Oracle RAG, SSE, pgvector, mood |
+
+### Références techniques
+
+- 🗄️ [SQLAlchemy 2.0 Async](docs/SQLALCHEMY.md)
+- ✅ [Pydantic V2](docs/PYDANTIC.md)
+- ⚙️ [Alembic](docs/ALEMBIC.md)
+- 🧪 [Guide de Test](docs/TESTS.md)
+- 🐳 [Docker Guide](DOCKER.md)
 
 ## 🚀 Installation & Lancement (Production)
 
@@ -45,7 +55,7 @@ Les services seront disponibles sur :
 
 - **App API** : [http://localhost:8002](http://localhost:8002)
 - **ML API** : [http://localhost:8001](http://localhost:8001)
-- **Frontend** : [http://localhost:5173](http://localhost:5173)
+- **Frontend** : [http://localhost:8080](http://localhost:8080) (Docker) ou `:5173` (Vite dev)
 
 Pour plus de détails, consultez [DOCKER.md](./DOCKER.md) et [ML_PIPELINE.md](./ML_PIPELINE.md).
 

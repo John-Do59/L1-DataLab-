@@ -10,7 +10,7 @@ L'architecture de production repose sur une orchestration conteneurisée découp
 
 * **Bases de données isolées (PostgreSQL 15)** :
   * `db-ml` (port local `5433`) : Contient les données d'entraînement historique, les variables ingérées et les scores Elo.
-  * `db-app` (port local `5434`) : Contient la logique métier applicative et l'historique des prédictions utilisateurs.
+  * `db-app` (port local `5434`) : Logique métier, historique prédictions, **pgvector** pour RAG sémantique (image `pgvector/pgvector:pg15`).
 * **Cache de performance (Redis 7)** : Port local `6379`, gérant les caches de calcul et les sessions.
 * **Moteur d'intelligence (ml-api)** : Port local `8001`. Service d'inférence en charge du chargement dynamique à chaud et à chaud du modèle champion RandomForestCalibrated.
 * **Passerelle Applicative (app-api)** : Port local `8002`. Gère les flux métiers et l'authentification.
