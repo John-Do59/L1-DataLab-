@@ -20,6 +20,22 @@
       </button>
     </div>
 
+    <div
+      v-if="predictionState === 'reveal' && savedToHistory"
+      class="mb-4 flex flex-wrap items-center justify-between gap-3 liquid-glass rounded-xl px-5 py-3 border border-sunset-primary/40"
+    >
+      <p class="text-sm text-sunset-accent">
+        Prédiction enregistrée dans votre historique.
+      </p>
+      <button
+        type="button"
+        @click="router.push('/history')"
+        class="text-sm font-semibold px-4 py-2 rounded-lg bg-gradient-to-r from-sunset-primary to-sunset-secondary text-white hover:shadow-[0_0_15px_rgba(200,118,255,0.35)] transition-all"
+      >
+        Voir l'historique →
+      </button>
+    </div>
+
     <!-- Main Data Link Container -->
     <div class="relative w-full flex-1 flex flex-col items-center justify-center mt-8">
       
@@ -241,7 +257,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '../api/axios'
 import NeuralCore from '../components/prediction/NeuralCore.vue'
 
@@ -264,6 +280,8 @@ interface PredictionResult {
 }
 
 const route = useRoute()
+const router = useRouter()
+const savedToHistory = ref(false)
 const teams = ref<Team[]>([])
 const homeTeam = ref(route.query.home as string || '')
 const awayTeam = ref(route.query.away as string || '')
@@ -323,6 +341,7 @@ const awayTeamObj = computed(() => teams.value.find(t => t.club_name === awayTea
 const canPredict = computed(() => homeTeam.value && awayTeam.value && homeTeam.value !== awayTeam.value)
 
 const runPrediction = async () => {
+  savedToHistory.value = false
   predictionState.value = 'loading'
   loadingProgress.value = 0
   
@@ -350,6 +369,7 @@ const runPrediction = async () => {
       version: data.version
     }
     predictionState.value = 'reveal'
+    savedToHistory.value = true
     loadingProgress.value = 100
   } catch (e) {
     console.error("Prediction failed:", e)

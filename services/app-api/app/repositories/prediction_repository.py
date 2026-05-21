@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
-from ..models.models import Prediction
+from ..models.models import Prediction, Match
 
 class PredictionRepository:
     def __init__(self, session: AsyncSession):
@@ -21,8 +21,14 @@ class PredictionRepository:
         return prediction
 
     async def get_user_predictions(self, user_id: int):
-        query = select(Prediction).options(
-            joinedload(Prediction.match)
-        ).where(Prediction.user_id == user_id)
+        query = (
+            select(Prediction)
+            .options(
+                joinedload(Prediction.match).joinedload(Match.home_team),
+                joinedload(Prediction.match).joinedload(Match.away_team),
+            )
+            .where(Prediction.user_id == user_id)
+            .order_by(Prediction.created_at.desc())
+        )
         result = await self.session.execute(query)
-        return result.scalars().all()
+        return result.unique().scalars().all()

@@ -16,6 +16,7 @@ from .repositories.prediction_repository import PredictionRepository
 from .services.ml_client import ml_client
 from .services.feature_service import FeatureService
 from .services.lfp_client import lfp_client
+from .services.prediction_history import prediction_to_history
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Ligue 1 Professional API", version="2.0.0")
@@ -150,27 +151,21 @@ async def predict_match(
     home_team = await team_repo.get_by_name(norm_home)
     away_team = await team_repo.get_by_name(norm_away)
     
-    # Fallback intelligent pour les équipes absentes de la BD locale (ex: Auxerre, Brest, etc.)
-    from app.models.models import Team
     if not home_team:
-        home_team = Team(
-            id=0,
-            name=home_team_name,
-            logo_url="https://ligue1.com/images/Logo_Ligue_1.webp",
+        home_team = await team_repo.get_or_create(
+            home_team_name,
             elo=1490.0,
             form_5=1.3,
             avg_overall=72.5,
-            squad_value=48.0
+            squad_value=48.0,
         )
     if not away_team:
-        away_team = Team(
-            id=0,
-            name=away_team_name,
-            logo_url="https://ligue1.com/images/Logo_Ligue_1.webp",
+        away_team = await team_repo.get_or_create(
+            away_team_name,
             elo=1470.0,
             form_5=1.2,
             avg_overall=71.5,
-            squad_value=42.0
+            squad_value=42.0,
         )
         
     # Calcul intelligent des cotes probables basées sur la différence d'Elo
@@ -262,7 +257,7 @@ async def get_predictions(
 ):
     repo = PredictionRepository(db)
     predictions = await repo.get_user_predictions(current_user.id)
-    return predictions
+    return [prediction_to_history(p) for p in predictions]
 
 from typing import Dict, Any
 

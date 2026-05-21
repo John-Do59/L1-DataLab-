@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 # --- USER SCHEMAS ---
 class UserBase(BaseModel):
@@ -50,6 +50,7 @@ class TeamResponse(BaseModel):
     id: int
     name: str
     elo_rating: Optional[float] = None
+    logo: Optional[str] = None
 
     class Config:
         from_attributes = True
